@@ -207,7 +207,7 @@ function addPermissionsCheckboxes(editor, ident, authz) {
  *      extensions.
  *
  */
-function main(options) {
+function ui(options) {
     if (typeof options === 'undefined' || options === null) {
         options = {};
     }
@@ -313,4 +313,4 @@ function main(options) {
 }
 
 
-exports.main = main;
+exports.ui = ui;
