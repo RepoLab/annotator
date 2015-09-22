@@ -17,6 +17,7 @@ var Adder = Widget.extend({
     // Returns nothing.
     load: function (annotation, position) {
         this.annotation = annotation;
+        console.log(this.annotation)
     }
 });
 
