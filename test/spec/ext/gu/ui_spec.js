@@ -1,14 +1,15 @@
 var assert = require('assertive-chai').assert;
 
+var h = require('../../../helpers');
+var $ = require('../../../../src/util').$;
+
 var adder = require('../../../../src/ext/gu/ui/adder');
 var editor = require('../../../../src/ext/gu/ui/editor');
-
 var highlighter = require('../../../../src/ui/highlighter');
 var textselector = require('.../../../../src/ui/textselector');
-
 var viewer = require('../../../../src/ext/gu/ui/viewer');
 
-var gu_ui = require('../../../../src/ext/gu/ui/main.js');
+var gu_ui = require('../../../../src/ext/gu/ui/main.js').main;
 
 
 describe("annotator.ext.gu.ui module", function () {

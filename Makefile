@@ -33,6 +33,13 @@ pkg/annotator.%.js: src/ext/%.js
 	@$(BROWSERIFY) $< >$@
 	@$(BROWSERIFY) --list $< | \
 	sed 's#^#$@: #' >.deps/annotator.$*.d
+	
+# GEORGETOWN.
+pkg/gu/annotator.js: src/ext/gu/browser.js
+	@mkdir -p pkg/gu/ .deps/
+	@$(BROWSERIFY) -s annotator $< >$@
+	@$(BROWSERIFY) --list $< | \
+	sed 's#^#$@: #' >.deps/annotator.d
 
 clean:
 	rm -rf .deps pkg
