@@ -7,9 +7,11 @@ var adder = require('./adder');
 var editor = require('../../../ui/editor');
 // var editor = require('./editor');
 var highlighter = require('../../../ui/highlighter');
-var textselector = require('../../../ui/textselector');
+var textselector = require('./textselector');
 var viewer = require('../../../ui/viewer');
 // var viewer = require('./viewer');
+
+var Range = require('xpath-range').Range;
 
 var _t = util.gettext;
 
@@ -35,6 +37,11 @@ function annotationFactory(contextEl, ignoreSelector) {
 
         for (var i = 0, len = ranges.length; i < len; i++) {
             var r = ranges[i];
+            var browserRange;
+            if (!(r instanceof Range.NormalizedRange)) {
+              browserRange = new Range.BrowserRange(r),
+              r = browserRange.normalize().limit(contextEl);
+            }
             text.push(trim(r.text()));
             serializedRanges.push(r.serialize(contextEl, ignoreSelector));
         }
@@ -62,41 +69,6 @@ function maxZIndex(elements) {
         }
     }
     return max;
-}
-
-
-// Helper function to inject CSS into the page that ensures Annotator elements
-// are displayed with the highest z-index.
-function injectDynamicStyle() {
-    util.$('#annotator-dynamic-style').remove();
-
-    var sel = '*' +
-              ':not(annotator-adder)' +
-              ':not(annotator-outer)' +
-              ':not(annotator-notice)' +
-              ':not(annotator-filter)';
-
-    // use the maximum z-index in the page
-    var max = maxZIndex(util.$(global.document.body).find(sel).get());
-
-    // but don't go smaller than 1010, because this isn't bulletproof --
-    // dynamic elements in the page (notifications, dialogs, etc.) may well
-    // have high z-indices that we can't catch using the above method.
-    max = Math.max(max, 1000);
-
-    var rules = [
-        ".annotator-adder, .annotator-outer, .annotator-notice {",
-        "  z-index: " + (max + 20) + ";",
-        "}",
-        ".annotator-filter {",
-        "  z-index: " + (max + 10) + ";",
-        "}"
-    ].join("\n");
-
-    util.$('<style>' + rules + '</style>')
-        .attr('id', 'annotator-dynamic-style')
-        .attr('type', 'text/css')
-        .appendTo('head');
 }
 
 
@@ -245,16 +217,35 @@ function ui(options) {
         s.highlighter = new highlighter.Highlighter(options.element);
 
         s.textselector = new textselector.TextSelector(options.element, {
-            onSelection: function (ranges, event) {
+            onSelection: function (ranges, event, native_ranges) {
                 if (ranges.length > 0) {
                     var annotation = makeAnnotation(ranges);
                     s.interactionPoint = util.mousePosition(event);
                     s.adder.load(annotation, s.interactionPoint);
+                    
+                    // we like to see the selection while we're writing an annotation.
+                    var selection = window.getSelection();
+                    selection.removeAllRanges();
+                    
+                    // reconstruct ranges (restore them to native Ranges, if they are NormalizedRanges).
+                    var ith_range, range;
+                    for (var i=0; i<native_ranges.length; i++) {
+                      ith_range = native_ranges[i];
+                      try {
+                        selection.addRange(ith_range);
+                      } catch (e) {
+                        console.log(e)
+                      }
+                    }
+                    
                 } else {
                     s.adder.hide();
                 }
             }
         });
+        
+        // expose this, so we can create selections
+        app.doSelection = s.textselector.onSelection;
 
         s.viewer = new viewer.Viewer({
             onEdit: function (ann) {
@@ -277,8 +268,6 @@ function ui(options) {
             extensions: options.viewerExtensions
         });
         s.viewer.attach();
-
-        injectDynamicStyle();
     }
 
     return {

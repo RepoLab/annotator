@@ -12,12 +12,21 @@ var NS = 'annotator-adder';
 // Adder shows and hides an annotation adder button that can be clicked on to
 // create an annotation.
 var Adder = Widget.extend({
+  
+    constructor: function (options) {
+      Widget.call(this, options);
+      this.annotation = null;
+
+      this.onCreate = this.options.onCreate;
+    },
 
     // Public: Load an annotation.
     // Returns nothing.
     load: function (annotation, position) {
         this.annotation = annotation;
-        console.log(this.annotation)
+        if (this.annotation !== null && typeof this.onCreate === 'function') {
+            this.onCreate(this.annotation, event);
+        }
     }
 });
 
