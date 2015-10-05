@@ -2,6 +2,7 @@
 "use strict";
 
 var TextSelector = require('../../../ui/textselector').TextSelector; // use default whenever possible.
+var LineNbrTextSelector = require('./linenbr_textselector').LineNbrTextSelector; // ours. for poetry line nbrs -- select line.
 var Editor = require('./editor').Editor; // need radically different UI.
 var Highlighter = require('./highlighter').Highlighter; // need our own, to better handle temp highlights when editor comes up.
 var Viewer = require('./viewer').Viewer; // need radically different UI.
@@ -34,7 +35,7 @@ function trim(s) {
 var UI = exports.ui = function (options) {
     options = options || {};
     var element = options.element || global.document.body;
-    var interactionPoint = null;
+    var interactionPoint, linenbr_selector;
     
     // initialize components. have them each render any DOM elements they need.
     // a function w this name gets called by the app, with the app object passed in.
@@ -46,6 +47,9 @@ var UI = exports.ui = function (options) {
             UI.viewer = new Viewer({ element: element });
             UI.highlighter = new Highlighter(element);
             UI.textselector = new TextSelector(element);
+            if (options.hasOwnProperty("linenbr_selector")) {
+              UI.linenbr_textselector = new LineNbrTextSelector(options.linenbr_selector);
+            }
             
             UI.temp_anns = [];
             
