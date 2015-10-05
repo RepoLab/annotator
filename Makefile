@@ -39,7 +39,7 @@ pkg/gu/%.js: src/ext/gu/%.js
 	@mkdir -p pkg/gu/ .deps/
 	@$(BROWSERIFY) -s gu $< >$@
 	@$(BROWSERIFY) --list $< | \
-	sed 's#^#$@: #' >.deps/annotator.$*.d
+	sed 's#^#$@: #' >.deps/annotator.gu.$*.d
 
 clean:
 	rm -rf .deps pkg

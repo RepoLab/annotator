@@ -1,20 +1,16 @@
 /*package annotator.ext.gu.ui */
 "use strict";
 
-var util = require('../../../util');
-
-var adder = require('./adder');
-var editor = require('../../../ui/editor');
-// var editor = require('./editor');
-var highlighter = require('../../../ui/highlighter');
-var textselector = require('./textselector');
-var viewer = require('../../../ui/viewer');
-// var viewer = require('./viewer');
+var Editor = require('./editor').Editor;
+var Highlighter = require('./highlighter').Highlighter;
+var TextSelector = require('../../../ui/textselector').TextSelector;
+var Viewer = require('./viewer').Viewer;
+var counters = require('./counters');
 
 var Range = require('xpath-range').Range;
 
-var _t = util.gettext;
-
+var highlight_class = "annotator-hl";
+var temp_highlight_class = "annotator-hl-temporary";
 
 // trim strips whitespace from either end of a string.
 //
@@ -28,278 +24,108 @@ function trim(s) {
 }
 
 
-// annotationFactory returns a function that can be used to construct an
-// annotation from a list of selected ranges.
-function annotationFactory(contextEl, ignoreSelector) {
-    return function (ranges) {
-        var text = [],
-            serializedRanges = [];
-
-        for (var i = 0, len = ranges.length; i < len; i++) {
-            var r = ranges[i];
-            var browserRange;
-            if (!(r instanceof Range.NormalizedRange)) {
-              browserRange = new Range.BrowserRange(r),
-              r = browserRange.normalize().limit(contextEl);
-            }
-            text.push(trim(r.text()));
-            serializedRanges.push(r.serialize(contextEl, ignoreSelector));
-        }
-
-        return {
-            quote: text.join(' / '),
-            ranges: serializedRanges
-        };
-    };
-}
-
-
-// maxZIndex returns the maximum z-index of all elements in the provided set.
-function maxZIndex(elements) {
-    var max = -1;
-    for (var i = 0, len = elements.length; i < len; i++) {
-        var $el = util.$(elements[i]);
-        if ($el.css('position') !== 'static') {
-            // Use parseFloat since we may get scientific notation for large
-            // values.
-            var zIndex = parseFloat($el.css('z-index'));
-            if (zIndex > max) {
-                max = zIndex;
-            }
-        }
-    }
-    return max;
-}
-
-
-// Helper function to remove dynamic stylesheets
-function removeDynamicStyle() {
-    util.$('#annotator-dynamic-style').remove();
-}
-
-
-// Helper function to add permissions checkboxes to the editor
-function addPermissionsCheckboxes(editor, ident, authz) {
-    function createLoadCallback(action) {
-        return function loadCallback(field, annotation) {
-            field = util.$(field).show();
-
-            var u = ident.who();
-            var input = field.find('input');
-
-            // Do not show field if no user is set
-            if (typeof u === 'undefined' || u === null) {
-                field.hide();
-            }
-
-            // Do not show field if current user is not admin.
-            if (!(authz.permits('admin', annotation, u))) {
-                field.hide();
-            }
-
-            // See if we can authorise without a user.
-            if (authz.permits(action, annotation, null)) {
-                input.attr('checked', 'checked');
-            } else {
-                input.removeAttr('checked');
-            }
-        };
-    }
-
-    function createSubmitCallback(action) {
-        return function submitCallback(field, annotation) {
-            var u = ident.who();
-
-            // Don't do anything if no user is set
-            if (typeof u === 'undefined' || u === null) {
-                return;
-            }
-
-            if (!annotation.permissions) {
-                annotation.permissions = {};
-            }
-            if (util.$(field).find('input').is(':checked')) {
-                delete annotation.permissions[action];
-            } else {
-                // While the permissions model allows for more complex entries
-                // than this, our UI presents a checkbox, so we can only
-                // interpret "prevent others from viewing" as meaning "allow
-                // only me to view". This may want changing in the future.
-                annotation.permissions[action] = [
-                    authz.authorizedUserId(u)
-                ];
-            }
-        };
-    }
-
-    editor.addField({
-        type: 'checkbox',
-        label: _t('Allow anyone to <strong>view</strong> this annotation'),
-        load: createLoadCallback('read'),
-        submit: createSubmitCallback('read')
-    });
-
-    editor.addField({
-        type: 'checkbox',
-        label: _t('Allow anyone to <strong>edit</strong> this annotation'),
-        load: createLoadCallback('update'),
-        submit: createSubmitCallback('update')
-    });
-}
-
-
-/**
- * function:: main([options])
+/*
+ * app.include(annotator.ui);
  *
- * A module that provides a default user interface for Annotator that allows
+ * Provides a user interface for Annotator that allows
  * users to create annotations by selecting text within (a part of) the
  * document.
- *
- * Example::
- *
- *     app.include(annotator.ui.main);
- *
- * :param Object options:
- *
- *   .. attribute:: options.element
- *
- *      A DOM element to which event listeners are bound. Defaults to
- *      ``document.body``, allowing annotation of the whole document.
- *
- *   .. attribute:: options.editorExtensions
- *
- *      An array of editor extensions. See the
- *      :class:`~annotator.ui.editor.Editor` documentation for details of editor
- *      extensions.
- *
- *   .. attribute:: options.viewerExtensions
- *
- *      An array of viewer extensions. See the
- *      :class:`~annotator.ui.viewer.Viewer` documentation for details of viewer
- *      extensions.
- *
  */
-function ui(options) {
-    if (typeof options === 'undefined' || options === null) {
-        options = {};
-    }
-
-    options.element = options.element || global.document.body;
-    options.editorExtensions = options.editorExtensions || [];
-    options.viewerExtensions = options.viewerExtensions || [];
-
-    // Local helpers
-    var makeAnnotation = annotationFactory(options.element, '.annotator-hl');
-
-    // Object to hold local state
-    var s = {
-        interactionPoint: null
-    };
-
-    function start(app) {
-        var ident = app.registry.getUtility('identityPolicy');
-        var authz = app.registry.getUtility('authorizationPolicy');
-
-        s.adder = new adder.Adder({
-            onCreate: function (ann) {
-                app.annotations.create(ann);
-            }
-        });
-        s.adder.attach();
-
-        s.editor = new editor.Editor({
-            extensions: options.editorExtensions
-        });
-        s.editor.attach();
-
-        addPermissionsCheckboxes(s.editor, ident, authz);
-
-        s.highlighter = new highlighter.Highlighter(options.element);
-
-        s.textselector = new textselector.TextSelector(options.element, {
-            onSelection: function (ranges, event, native_ranges) {
-                if (ranges.length > 0) {
-                    var annotation = makeAnnotation(ranges);
-                    s.interactionPoint = util.mousePosition(event);
-                    s.adder.load(annotation, s.interactionPoint);
-                    
-                    // we like to see the selection while we're writing an annotation.
-                    var selection = window.getSelection();
-                    selection.removeAllRanges();
-                    
-                    // reconstruct ranges (restore them to native Ranges, if they are NormalizedRanges).
-                    var ith_range, range;
-                    for (var i=0; i<native_ranges.length; i++) {
-                      ith_range = native_ranges[i];
-                      try {
-                        selection.addRange(ith_range);
-                      } catch (e) {
-                        console.log(e)
-                      }
-                    }
-                    
-                } else {
-                    s.adder.hide();
-                }
-            }
-        });
+var UI = exports.ui = function (options) {
+    options = options || {};
+    var element = options.element || global.document.body;
+    var interactionPoint = null;
+    
+    // initialize components. have them each render any DOM elements they need.
+    // a function w this name gets called by the app, with the app object passed in.
+    var functions = {
+        start: function (app) {
+            UI.app = app;
         
-        // expose this, so we can create selections
-        app.doSelection = s.textselector.onSelection;
+            UI.editor = new Editor({ element: element });
+            UI.viewer = new Viewer({ element: element });
+            UI.highlighter = new Highlighter(element);
+            UI.textselector = new TextSelector(element);
+            
+            UI.temp_anns = [];
+            
+            // employ a broadcast/listener pattern,
+            // borrowing their callback.
+            UI.textselector.onSelection = function (selectedRanges, event) {
+                var e = $.Event("text-selected", { ranges: selectedRanges });
+                e = $.extend(event, e);
+                $(element).trigger(e);
+            }
+            
+            // listen for text selection events (initiated by user or by program),
+            // to start an annotation.
+            $(element).on("text-selected", function (evt) {
+              // unhighlight any temp highlights. & replace temp ann's with a new one.
+              if (evt.shiftKey) {
+                debugger;
+              }
+              UI.highlighter.undrawAll(UI.temp_anns);
+              var new_ann = functions.makeAnnotation(evt)
+              UI.temp_anns.push(new_ann);
+            });
+            
+            // control what happens when an annotation gets created.
+            $(element).on("new-annotation", function (evt) {
+              var ann = evt.annotation;
+              if (!ann || ! ann.ranges || !ann.ranges.length) { return; }
+              UI.highlighter.draw(ann, temp_highlight_class);
+              // UI.editor.load(ann, {});
+            });
+        },
 
-        s.viewer = new viewer.Viewer({
-            onEdit: function (ann) {
-                // Copy the interaction point from the shown viewer:
-                s.interactionPoint = util.$(s.viewer.element)
-                                         .css(['top', 'left']);
-
-                app.annotations.update(ann);
-            },
-            onDelete: function (ann) {
-                app.annotations['delete'](ann);
-            },
-            permitEdit: function (ann) {
-                return authz.permits('update', ann, ident.who());
-            },
-            permitDelete: function (ann) {
-                return authz.permits('delete', ann, ident.who());
-            },
-            autoViewHighlights: options.element,
-            extensions: options.viewerExtensions
-        });
-        s.viewer.attach();
-    }
-
-    return {
-        start: start,
-
+        // tell each component to destroy whatever DOM elements it has created.
+        // a function w this name gets called by the app.
         destroy: function () {
-            s.adder.destroy();
-            s.editor.destroy();
-            s.highlighter.destroy();
-            s.textselector.destroy();
-            s.viewer.destroy();
-            removeDynamicStyle();
+            UI.editor.destroy();
+            UI.highlighter.destroy();
+            UI.textselector.destroy();
+            UI.viewer.destroy();
+            UI.counters.destroy();
         },
+    
+        // create the basic structure of an annotation from the ranges of the selected text.
+        makeAnnotation: function (evt) {
+          try {
+            var ranges = evt.ranges;
+          } catch (e) {
+            console.log(e, evt)
+            ranges = []
+          }
+          
+            var text = [],
+                serializedRanges = [];
 
-        annotationsLoaded: function (anns) { s.highlighter.drawAll(anns); },
-        annotationCreated: function (ann) { s.highlighter.draw(ann); },
-        annotationDeleted: function (ann) { s.highlighter.undraw(ann); },
-        annotationUpdated: function (ann) { s.highlighter.redraw(ann); },
+            for (var i = 0, len = ranges.length; i < len; i++) {
+                var r = ranges[i];
+                var browserRange;
+                if (!(r instanceof Range.NormalizedRange)) {
+                  browserRange = new Range.BrowserRange(r),
+                  r = browserRange.normalize().limit(element);
+                }
+                text.push(trim(r.text()));
+                serializedRanges.push(r.serialize(element, highlight_class));
+            }
 
-        beforeAnnotationCreated: function (annotation) {
-            // Editor#load returns a promise that is resolved if editing
-            // completes, and rejected if editing is cancelled. We return it
-            // here to "stall" the annotation process until the editing is
-            // done.
-            return s.editor.load(annotation, s.interactionPoint);
-        },
-
-        beforeAnnotationUpdated: function (annotation) {
-            return s.editor.load(annotation, s.interactionPoint);
+            var ann = {
+                quote: text.join(' / '),
+                ranges: serializedRanges
+            };
+            
+            // announce that a new annotation is ready to be edited.
+            var e = $.Event("new-annotation", { annotation: ann });
+            $(element).trigger(e);
+            
+            return ann;
         }
-    };
+    }
+    
+    // this weirdness is because annotator is expecting an object of functions.
+    $.extend(UI, functions);
+    
+    return functions;
 }
-
-
-exports.ui = ui;

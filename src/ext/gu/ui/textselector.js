@@ -58,7 +58,6 @@ TextSelector.prototype.captureDocumentSelection = function () {
     var i,
         len,
         ranges = [],
-        native_ranges = [],
         rangesToIgnore = [],
         selection = global.getSelection();
 
@@ -77,7 +76,6 @@ TextSelector.prototype.captureDocumentSelection = function () {
             rangesToIgnore.push(r);
         } else {
             ranges.push(normedRange);
-            native_ranges.push(r);
         }
     }
 
@@ -100,7 +98,7 @@ TextSelector.prototype.captureDocumentSelection = function () {
     }
 
 
-    return { selectedRanges: ranges, nativeRanges: native_ranges };
+    return ranges;
 };
 
 // Event callback: called when the mouse button is released. Checks to see if a
@@ -119,9 +117,7 @@ TextSelector.prototype._checkForEndSelection = function (event) {
     };
 
     // Get the currently selected ranges.
-    var ranges_obj = this.captureDocumentSelection();
-    var selectedRanges = ranges_obj.selectedRanges || [];
-    var nativeRanges = ranges_obj.nativeRanges || [];
+    var selectedRanges = this.captureDocumentSelection();
 
     if (selectedRanges.length === 0) {
         _nullSelection();
@@ -141,7 +137,7 @@ TextSelector.prototype._checkForEndSelection = function (event) {
     }
 
     if (typeof this.onSelection === 'function') {
-        this.onSelection(selectedRanges, event, nativeRanges);
+        this.onSelection(selectedRanges, event);
     }
 };
 
