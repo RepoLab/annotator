@@ -1,11 +1,11 @@
 /*package annotator.ext.gu.ui */
 "use strict";
 
-var Editor = require('./editor').Editor;
-var Highlighter = require('./highlighter').Highlighter;
-var TextSelector = require('../../../ui/textselector').TextSelector;
-var Viewer = require('./viewer').Viewer;
-var counters = require('./counters');
+var TextSelector = require('../../../ui/textselector').TextSelector; // use default whenever possible.
+var Editor = require('./editor').Editor; // need radically different UI.
+var Highlighter = require('./highlighter').Highlighter; // need our own, to better handle temp highlights when editor comes up.
+var Viewer = require('./viewer').Viewer; // need radically different UI.
+var counters = require('./counters'); // our own markers, not in default UI.
 
 var Range = require('xpath-range').Range;
 
@@ -52,21 +52,26 @@ var UI = exports.ui = function (options) {
             // employ a broadcast/listener pattern,
             // borrowing their callback.
             UI.textselector.onSelection = function (selectedRanges, event) {
+              if (selectedRanges.length) {
                 var e = $.Event("text-selected", { ranges: selectedRanges });
                 e = $.extend(event, e);
                 $(element).trigger(e);
+              }
             }
             
-            // listen for text selection events (initiated by user or by program),
-            // to start an annotation.
+            // listen for text selection events (initiated by user or by program) to start an annotation.
+            // I know it looks dumb to declare a broadcaster and then its listener in the same scope,
+            // but I'm not the only listener, and this guarantees the right sequence of events.
             $(element).on("text-selected", function (evt) {
               // unhighlight any temp highlights. & replace temp ann's with a new one.
-              if (evt.shiftKey) {
-                debugger;
-              }
               UI.highlighter.undrawAll(UI.temp_anns);
               var new_ann = functions.makeAnnotation(evt)
               UI.temp_anns.push(new_ann);
+              
+              // once we've made the temp 'selection' with our highlighter,
+              // nix the real selection.
+              var selection = global.getSelection();
+              selection.removeAllRanges();
             });
             
             // control what happens when an annotation gets created.
