@@ -1,7 +1,7 @@
 /*package annotator.ext.gu.ui */
 "use strict";
 
-var TextSelector = require('../../../ui/textselector').TextSelector; // use default whenever possible.
+var TextSelector = require('./textselector').TextSelector; // use default whenever possible.
 var LineNbrTextSelector = require('./linenbr_textselector').LineNbrTextSelector; // ours. for poetry line nbrs -- select line.
 var Editor = require('./editor').Editor; // need radically different UI.
 var Highlighter = require('./highlighter').Highlighter; // need our own, to better handle temp highlights when editor comes up.
@@ -12,6 +12,8 @@ var Range = require('xpath-range').Range;
 
 var highlight_class = "annotator-hl";
 var temp_highlight_class = "annotator-hl-temporary";
+var editor_class = "annotator-editor";
+
 
 // trim strips whitespace from either end of a string.
 //
@@ -43,7 +45,7 @@ var UI = exports.ui = function (options) {
         start: function (app) {
             UI.app = app;
         
-            UI.editor = new Editor({ element: element });
+            UI.editor = new Editor({ element: element, editor_element: options.editor_element });
             UI.viewer = new Viewer({ element: element });
             UI.highlighter = new Highlighter(element);
             UI.textselector = new TextSelector(element);
@@ -83,7 +85,7 @@ var UI = exports.ui = function (options) {
               var ann = evt.annotation;
               if (!ann || ! ann.ranges || !ann.ranges.length) { return; }
               UI.highlighter.draw(ann, temp_highlight_class);
-              // UI.editor.load(ann, {});
+              UI.editor.load(ann, evt.position);
             });
         },
 
@@ -126,7 +128,8 @@ var UI = exports.ui = function (options) {
             };
             
             // announce that a new annotation is ready to be edited.
-            var e = $.Event("new-annotation", { annotation: ann });
+            var ann_evt = evt._startOfSelectionEvent || evt;
+            var e = $.Event("new-annotation", { annotation: ann, position: { left: ann_evt.pageX, top: ann_evt.pageY } });
             $(element).trigger(e);
             
             return ann;

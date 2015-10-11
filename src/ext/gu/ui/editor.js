@@ -11,10 +11,12 @@ var NS = "annotator-editor";
 // Public: Creates an element for editing annotations.
 var Editor = exports.Editor = function (options) {
     this.options = options || {};
-    this.element = this.options.element || null; // provide from app??
-    this.element = $(this.element);
+    
+    this.element = $(options.editor_element);
+    this.document_element = $(options.element);
     
     this.fields = [];
+    this.controls = [];
     this.annotation = {};
 
     var self = this;
@@ -35,16 +37,21 @@ var Editor = exports.Editor = function (options) {
         .on("keydown." + NS, 'textarea', function (e) {
             self._onTextareaKeydown(e);
         });
+        
+    this.document_element
+        .on("new-annotation", function (evt) {
+          console.log(evt)
+        });
 }
 
-$.extend(Editor, {
+$.extend(Editor.prototype, {
 
     destroy: function () {
         this.element.off("." + NS);
-        Widget.prototype.destroy.call(this);
     },
 
     show: function (position) {
+      this.element.show().offset({ top: position.top });
     },
 
     // Public: Load an annotation into the editor and display it.
@@ -194,21 +201,6 @@ $.extend(Editor, {
         this.fields.push(field);
 
         return field.element;
-    },
-
-    checkOrientation: function () {
-        Widget.prototype.checkOrientation.call(this);
-
-        var list = this.element.find('ul').first(),
-            controls = this.element.find('.annotator-controls');
-
-        if (this.element.hasClass(this.classes.invert.y)) {
-            controls.insertBefore(list);
-        } else if (controls.is(':first-child')) {
-            controls.insertAfter(list);
-        }
-
-        return this;
     },
 
     // Event callback: called when a user clicks the editor form (by pressing

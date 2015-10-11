@@ -35,6 +35,10 @@ function TextSelector(element, options) {
         $(this.document.body)
             .on("mouseup." + TEXTSELECTOR_NS, function (e) {
                 self._checkForEndSelection(e);
+                self._mouseDownEvent = null;
+            })
+            .on("mousedown." + TEXTSELECTOR_NS, function (e) {
+              self._mouseDownEvent = e;
             });
     } else {
         console.warn("You created an instance of the TextSelector on an " +
@@ -109,6 +113,10 @@ TextSelector.prototype.captureDocumentSelection = function () {
 // Returns nothing.
 TextSelector.prototype._checkForEndSelection = function (event) {
     var self = this;
+    
+    if (self._mouseDownEvent) {
+      event._startOfSelectionEvent = self._mouseDownEvent;
+    }
 
     var _nullSelection = function () {
         if (typeof self.onSelection === 'function') {
