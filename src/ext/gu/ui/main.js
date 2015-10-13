@@ -10,8 +10,6 @@ var counters = require('./counters'); // our own markers, not in default UI.
 
 var Range = require('xpath-range').Range;
 
-var highlight_class = "annotator-hl";
-var temp_highlight_class = "annotator-hl-temporary";
 var editor_class = "annotator-editor";
 
 
@@ -36,7 +34,7 @@ function trim(s) {
  */
 var UI = exports.ui = function (options) {
     options = options || {};
-    var element = options.element || global.document.body;
+    var document_element = options.document_element || global.document.body;
     var interactionPoint, linenbr_selector;
     
     // initialize components. have them each render any DOM elements they need.
@@ -45,15 +43,13 @@ var UI = exports.ui = function (options) {
         start: function (app) {
             UI.app = app;
         
-            UI.editor = new Editor({ element: element, editor_element: options.editor_element });
-            UI.viewer = new Viewer({ element: element });
-            UI.highlighter = new Highlighter(element);
-            UI.textselector = new TextSelector(element);
+            UI.editor = new Editor({ document_element: document_element, editor_element: options.editor_element });
+            UI.viewer = new Viewer({ document_element: document_element });
+            UI.highlighter = new Highlighter(document_element);
+            UI.textselector = new TextSelector(document_element);
             if (options.hasOwnProperty("linenbr_selector")) {
               UI.linenbr_textselector = new LineNbrTextSelector(options.linenbr_selector);
             }
-            
-            UI.temp_anns = [];
             
             // employ a broadcast/listener pattern,
             // borrowing their callback.
@@ -61,31 +57,28 @@ var UI = exports.ui = function (options) {
               if (selectedRanges.length) {
                 var e = $.Event("text-selected", { ranges: selectedRanges });
                 e = $.extend(event, e);
-                $(element).trigger(e);
+                $(document_element).trigger(e);
               }
             }
             
             // listen for text selection events (initiated by user or by program) to start an annotation.
             // I know it looks dumb to declare a broadcaster and then its listener in the same scope,
             // but I'm not the only listener, and this guarantees the right sequence of events.
-            $(element).on("text-selected", function (evt) {
-              // unhighlight any temp highlights. & replace temp ann's with a new one.
-              UI.highlighter.undrawAll(UI.temp_anns);
-              var new_ann = functions.makeAnnotation(evt)
-              UI.temp_anns.push(new_ann);
+            $(document_element).on("text-selected", function (evt) {
+              var ann = functions.makeAnnotation(evt);
+
+              // safeguard against annotations that are not associated with text selections.
+              if (!ann || !ann.ranges || !ann.ranges.length) { return; }
+            
+              // announce that a new annotation is ready to be edited.
+              var ann_evt = evt._startOfSelectionEvent || evt;
+              var e = $.Event("new-annotation", { annotation: ann, position: { left: ann_evt.pageX, top: ann_evt.pageY } });
+              $(document_element).trigger(e);
               
               // once we've made the temp 'selection' with our highlighter,
               // nix the real selection.
               var selection = global.getSelection();
               selection.removeAllRanges();
-            });
-            
-            // control what happens when an annotation gets created.
-            $(element).on("new-annotation", function (evt) {
-              var ann = evt.annotation;
-              if (!ann || ! ann.ranges || !ann.ranges.length) { return; }
-              UI.highlighter.draw(ann, temp_highlight_class);
-              UI.editor.load(ann, evt.position);
             });
         },
 
@@ -116,21 +109,16 @@ var UI = exports.ui = function (options) {
                 var browserRange;
                 if (!(r instanceof Range.NormalizedRange)) {
                   browserRange = new Range.BrowserRange(r),
-                  r = browserRange.normalize().limit(element);
+                  r = browserRange.normalize().limit(document_element);
                 }
                 text.push(trim(r.text()));
-                serializedRanges.push(r.serialize(element, highlight_class));
+                serializedRanges.push(r.serialize(document_element, UI.highlighter.highlight_class || null));
             }
 
             var ann = {
                 quote: text.join(' / '),
                 ranges: serializedRanges
             };
-            
-            // announce that a new annotation is ready to be edited.
-            var ann_evt = evt._startOfSelectionEvent || evt;
-            var e = $.Event("new-annotation", { annotation: ann, position: { left: ann_evt.pageX, top: ann_evt.pageY } });
-            $(element).trigger(e);
             
             return ann;
         }

@@ -4,7 +4,6 @@ var Range = require('xpath-range').Range;
 
 var util = require('../../../util');
 
-var $ = util.$;
 var Promise = util.Promise;
 
 
@@ -67,14 +66,30 @@ function reanchorRange(range, rootElement) {
 // options - An options Object containing configuration options for the plugin.
 //           See `Highlighter.options` for available options.
 //
-var Highlighter = exports.Highlighter = function Highlighter(element, options) {
-    this.element = element;
+var Highlighter = exports.Highlighter = function Highlighter(document_element, options) {
+    this.element = document_element;
     this.options = $.extend(true, {}, Highlighter.defaults, options);
+    
+    this.temp_highlighted_anns = [];
+    
+    var self = this;
+    
+    $(document_element).on("text-selected", function (evt) {
+      // unhighlight any temp highlights. & replace temp ann's with a new one.
+      self.undrawAll(self.temp_highlighted_anns);
+      self.temp_highlighted_anns = [];
+    });
+    
+    // control what happens when an annotation gets created.
+    $(document_element).on("new-annotation", function (evt) {
+      self.temp_highlighted_anns.push(evt.annotation);
+      self.draw(evt.annotation, self.options.temp_highlight_class);
+    });
 };
 
 Highlighter.prototype.destroy = function () {
     $(this.element)
-        .find("." + this.options.highlightClass)
+        .find("." + this.options.highlight_class)
         .each(function (_, el) {
             $(el).contents().insertBefore(el);
             $(el).remove();
@@ -212,7 +227,9 @@ Highlighter.prototype.undrawAll = function (annotations) {
 
 Highlighter.defaults = {
     // The CSS class to apply to drawn highlights
-    highlightClass: 'annotator-hl',
+    highlight_class: 'annotator-hl',
+    // CSS class to apply while annotation is being made
+    temp_highlight_class: "annotator-hl-temporary",
     // Number of annotations to draw at once
     chunkSize: 10,
     // Time (in ms) to pause between drawing chunks of annotations

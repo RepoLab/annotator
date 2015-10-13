@@ -22,8 +22,8 @@ function isAnnotator(element) {
 
 // TextSelector monitors a document (or a specific element) for text selections
 // and can notify another object of a selection event
-function TextSelector(element, options) {
-    this.element = element;
+function TextSelector(document_element, options) {
+    this.element = document_element;
     this.options = $.extend(true, {}, TextSelector.options, options);
     this.onSelection = this.options.onSelection;
 

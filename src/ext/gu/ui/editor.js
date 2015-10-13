@@ -2,7 +2,6 @@
 
 var util = require('../../../util');
 
-var $ = util.$;
 var _t = util.gettext;
 var Promise = util.Promise;
 
@@ -11,9 +10,9 @@ var NS = "annotator-editor";
 // Public: Creates an element for editing annotations.
 var Editor = exports.Editor = function (options) {
     this.options = options || {};
-    
-    this.element = $(options.editor_element);
-    this.document_element = $(options.element);
+
+    this.document_element = $(options.document_element);
+    this.editor_element = $(options.editor_element);
     
     this.fields = [];
     this.controls = [];
@@ -21,7 +20,7 @@ var Editor = exports.Editor = function (options) {
 
     var self = this;
 
-    this.element
+    this.editor_element
         .on("submit." + NS, 'form', function (e) {
             self._onFormSubmit(e);
         })
@@ -40,18 +39,20 @@ var Editor = exports.Editor = function (options) {
         
     this.document_element
         .on("new-annotation", function (evt) {
-          console.log(evt)
+          self.load(evt.annotation, evt.position);
         });
 }
+
+Editor.offset_top = 68;
 
 $.extend(Editor.prototype, {
 
     destroy: function () {
-        this.element.off("." + NS);
+        this.editor_element.off("." + NS);
     },
 
     show: function (position) {
-      this.element.show().offset({ top: position.top });
+      this.editor_element.show().offset({ top: position.top - Editor.offset_top });
     },
 
     // Public: Load an annotation into the editor and display it.
@@ -197,7 +198,7 @@ $.extend(Editor.prototype, {
             }));
         }
 
-        this.element.find('ul:first').append(element);
+        this.editor_element.find('ul:first').append(element);
         this.fields.push(field);
 
         return field.element;
@@ -255,26 +256,6 @@ $.extend(Editor.prototype, {
         }
     }
 });
-
-// Classes to toggle state.
-Editor.classes = {
-    hide: 'annotator-hide',
-    focus: 'annotator-focus'
-};
-
-// HTML template for this.element.
-Editor.template = [
-    '<div class="annotator-outer annotator-editor annotator-hide">',
-    '  <form class="annotator-widget">',
-    '    <ul class="annotator-listing"></ul>',
-    '    <div class="annotator-controls">',
-    '     <a href="#cancel" class="annotator-cancel">' + _t('Cancel') + '</a>',
-    '      <a href="#save"',
-    '         class="annotator-save annotator-focus">' + _t('Save') + '</a>',
-    '    </div>',
-    '  </form>',
-    '</div>'
-].join('\n');
 
 // Configuration options
 Editor.options = {
