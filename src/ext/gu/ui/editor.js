@@ -114,6 +114,7 @@ $.extend(Editor.prototype, {
 
         var self = this;
         return new Promise(function (resolve, reject) {
+          debugger;
             self.dfd = {resolve: resolve, reject: reject};
             self.show(position);
         });
