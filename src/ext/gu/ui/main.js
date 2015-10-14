@@ -35,6 +35,7 @@ function trim(s) {
 var UI = exports.ui = function (options) {
     options = options || {};
     var document_element = options.document_element || global.document.body;
+    var editor_wysiwyg = options.editor_wysiwyg || null;
     var interactionPoint, linenbr_selector;
     
     // initialize components. have them each render any DOM elements they need.
@@ -43,7 +44,7 @@ var UI = exports.ui = function (options) {
         start: function (app) {
             UI.app = app;
         
-            UI.editor = new Editor({ document_element: document_element, editor_element: options.editor_element });
+            UI.editor = new Editor({ document_element: document_element, editor_element: options.editor_element, editor_wysiwyg: editor_wysiwyg });
             UI.viewer = new Viewer({ document_element: document_element });
             UI.highlighter = new Highlighter(document_element);
             UI.textselector = new TextSelector(document_element);

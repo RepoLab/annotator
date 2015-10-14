@@ -7,12 +7,34 @@ var Promise = util.Promise;
 
 var NS = "annotator-editor";
 
+
+// id returns an identifier unique within this session
+var id = (function () {
+    var counter;
+    counter = -1;
+    return function () {
+        return counter += 1;
+    };
+}());
+
+
+// preventEventDefault prevents an event's default, but handles the condition
+// that the event is null or doesn't have a preventDefault function.
+function preventEventDefault(event) {
+    if (typeof event !== 'undefined' &&
+        event !== null &&
+        typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
+}
+
 // Public: Creates an element for editing annotations.
 var Editor = exports.Editor = function (options) {
     this.options = options || {};
 
     this.document_element = $(options.document_element);
     this.editor_element = $(options.editor_element);
+    this.editor_wysiwyg = options.editor_wysiwyg;
     
     this.fields = [];
     this.controls = [];
@@ -43,7 +65,7 @@ var Editor = exports.Editor = function (options) {
         });
 }
 
-Editor.offset_top = 68;
+Editor.offset_top = 64;
 
 $.extend(Editor.prototype, {
 
@@ -53,6 +75,20 @@ $.extend(Editor.prototype, {
 
     show: function (position) {
       this.editor_element.show().offset({ top: position.top - Editor.offset_top });
+      // give wysiwyg the focus.
+      var wysiwyg = this.editor_wysiwyg;
+      setTimeout(
+        function () {
+          if (wysiwyg){
+            wysiwyg.focus.setEnd();
+            wysiwyg.caret.setOffset(0);
+          }
+        }
+      );
+    },
+    
+    hide: function () {
+      this.editor_element.hide();
     },
 
     // Public: Load an annotation into the editor and display it.
@@ -70,6 +106,9 @@ $.extend(Editor.prototype, {
             var field = this.fields[i];
             field.load(field.element, this.annotation);
         }
+        
+        // load the wysiwyg.
+        this.editor_wysiwyg.code.set(annotation.text || "");
 
         var self = this;
         return new Promise(function (resolve, reject) {
