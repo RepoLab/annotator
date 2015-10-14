@@ -74,11 +74,15 @@ var Highlighter = exports.Highlighter = function Highlighter(document_element, o
     
     var self = this;
     
-    $(document_element).on("text-selected", function (evt) {
-      // unhighlight any temp highlights. & replace temp ann's with a new one.
-      self.undrawAll(self.temp_highlighted_anns);
-      self.temp_highlighted_anns = [];
-    });
+    $(document_element)
+      .on("text-selected", function (evt) {
+        // unhighlight any temp highlights. & replace temp ann's with a new one.
+        self.undrawAll(self.temp_highlighted_anns);
+        self.temp_highlighted_anns = [];
+      })
+      .on("text-deselected", function (evt) {
+        self.undrawAll(self.temp_highlighted_anns);
+      });
     
     // control what happens when an annotation gets created.
     $(document_element).on("new-annotation", function (evt) {

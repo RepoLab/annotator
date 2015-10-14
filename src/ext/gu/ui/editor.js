@@ -62,6 +62,8 @@ var Editor = exports.Editor = function (options) {
     this.document_element
         .on("new-annotation", function (evt) {
           self.load(evt.annotation, evt.position);
+        }).on("text-deselected", function (evt) {
+          self.cancel();
         });
 }
 

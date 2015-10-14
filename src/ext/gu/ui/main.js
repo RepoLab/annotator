@@ -55,11 +55,14 @@ var UI = exports.ui = function (options) {
             // employ a broadcast/listener pattern,
             // borrowing their callback.
             UI.textselector.onSelection = function (selectedRanges, event) {
+              var e;
               if (selectedRanges.length) {
-                var e = $.Event("text-selected", { ranges: selectedRanges });
-                e = $.extend(event, e);
-                $(document_element).trigger(e);
+                e = $.Event("text-selected", { ranges: selectedRanges });
+              } else {
+                e = $.Event("text-deselected");
               }
+              e = $.extend(event, e);
+              $(document_element).trigger(e);
             }
             
             // listen for text selection events (initiated by user or by program) to start an annotation.
@@ -72,8 +75,15 @@ var UI = exports.ui = function (options) {
               if (!ann || !ann.ranges || !ann.ranges.length) { return; }
             
               // announce that a new annotation is ready to be edited.
-              var ann_evt = evt._startOfSelectionEvent || evt;
-              var e = $.Event("new-annotation", { annotation: ann, position: { left: ann_evt.pageX, top: ann_evt.pageY } });
+              var pageX, pageY;
+              if (evt.hasOwnProperty("_startOfSelectionEvent") && evt._startOfSelectionEvent.pageY < evt.pageY) {
+                pageX = evt._startOfSelectionEvent.pageX;
+                pageY = evt._startOfSelectionEvent.pageY;
+              } else {
+                pageX = evt.pageX;
+                pageY = evt.pageY;
+              }
+              var e = $.Event("new-annotation", { annotation: ann, position: { left: pageX, top: pageY } });
               $(document_element).trigger(e);
               
               // once we've made the temp 'selection' with our highlighter,
