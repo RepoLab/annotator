@@ -114,7 +114,6 @@ $.extend(Editor.prototype, {
 
         var self = this;
         return new Promise(function (resolve, reject) {
-          debugger;
             self.dfd = {resolve: resolve, reject: reject};
             self.show(position);
         });
@@ -131,6 +130,10 @@ $.extend(Editor.prototype, {
         if (typeof this.dfd !== 'undefined' && this.dfd !== null) {
             this.dfd.resolve();
         }
+        // announce there is an annotation to save. hopefully, a Store will be listening.
+        var aEvt = $.Event("save-annotation", { annotation: this.annotation });
+        this.document_element.trigger(aEvt);
+        
         this.hide();
     },
 
@@ -276,9 +279,9 @@ $.extend(Editor.prototype, {
     //
     // Returns nothing
     _onCancelMouseover: function () {
-        this.element
-            .find('.' + this.classes.focus)
-            .removeClass(this.classes.focus);
+        this.editor_element
+            .find('.' + Editor.classes.focus)
+            .removeClass(Editor.classes.focus);
     },
 
     // Event callback: listens for the following special keypresses.
@@ -303,4 +306,10 @@ $.extend(Editor.prototype, {
 Editor.options = {
     // Add the default field(s) to the editor.
     defaultFields: true
+};
+
+// Classes to toggle state.
+Editor.classes = {
+    hide: 'annotator-hide',
+    focus: 'annotator-focus'
 };

@@ -48,6 +48,9 @@ var UI = exports.ui = function (options) {
             UI.viewer = new Viewer({ document_element: document_element });
             UI.highlighter = new Highlighter(document_element);
             UI.textselector = new TextSelector(document_element);
+            
+            var store = app.registry.getUtility('storage');
+            
             if (options.hasOwnProperty("linenbr_selector")) {
               UI.linenbr_textselector = new LineNbrTextSelector(options.linenbr_selector);
             }
@@ -68,29 +71,33 @@ var UI = exports.ui = function (options) {
             // listen for text selection events (initiated by user or by program) to start an annotation.
             // I know it looks dumb to declare a broadcaster and then its listener in the same scope,
             // but I'm not the only listener, and this guarantees the right sequence of events.
-            $(document_element).on("text-selected", function (evt) {
-              var ann = functions.makeAnnotation(evt);
+            $(document_element)
+              .on("text-selected", function (evt) {
+                var ann = functions.makeAnnotation(evt);
 
-              // safeguard against annotations that are not associated with text selections.
-              if (!ann || !ann.ranges || !ann.ranges.length) { return; }
+                // safeguard against annotations that are not associated with text selections.
+                if (!ann || !ann.ranges || !ann.ranges.length) { return; }
             
-              // announce that a new annotation is ready to be edited.
-              var pageX, pageY;
-              if (evt.hasOwnProperty("_startOfSelectionEvent") && evt._startOfSelectionEvent.pageY < evt.pageY) {
-                pageX = evt._startOfSelectionEvent.pageX;
-                pageY = evt._startOfSelectionEvent.pageY;
-              } else {
-                pageX = evt.pageX;
-                pageY = evt.pageY;
-              }
-              var e = $.Event("new-annotation", { annotation: ann, position: { left: pageX, top: pageY } });
-              $(document_element).trigger(e);
+                // announce that a new annotation is ready to be edited.
+                var pageX, pageY;
+                if (evt.hasOwnProperty("_startOfSelectionEvent") && evt._startOfSelectionEvent.pageY < evt.pageY) {
+                  pageX = evt._startOfSelectionEvent.pageX;
+                  pageY = evt._startOfSelectionEvent.pageY;
+                } else {
+                  pageX = evt.pageX;
+                  pageY = evt.pageY;
+                }
+                var e = $.Event("new-annotation", { annotation: ann, position: { left: pageX, top: pageY } });
+                $(document_element).trigger(e);
               
-              // once we've made the temp 'selection' with our highlighter,
-              // nix the real selection.
-              var selection = global.getSelection();
-              selection.removeAllRanges();
-            });
+                // once we've made the temp 'selection' with our highlighter,
+                // nix the real selection.
+                var selection = global.getSelection();
+                selection.removeAllRanges();
+              })
+              .on("save-annotation", function (evt) {
+                store.create(evt.annotation);
+              });
         },
 
         // tell each component to destroy whatever DOM elements it has created.
