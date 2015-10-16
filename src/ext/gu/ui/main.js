@@ -96,6 +96,7 @@ var UI = exports.ui = function (options) {
                 selection.removeAllRanges();
               })
               .on("save-annotation", function (evt) {
+                delete evt.annotation["_local"];
                 store.create(evt.annotation);
               });
         },

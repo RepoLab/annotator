@@ -130,6 +130,10 @@ $.extend(Editor.prototype, {
         if (typeof this.dfd !== 'undefined' && this.dfd !== null) {
             this.dfd.resolve();
         }
+        
+        // get text from wysiwyg.
+        this.annotation.text = this.editor_wysiwyg.code.get();
+        
         // announce there is an annotation to save. hopefully, a Store will be listening.
         var aEvt = $.Event("save-annotation", { annotation: this.annotation });
         this.document_element.trigger(aEvt);
