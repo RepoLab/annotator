@@ -50,6 +50,7 @@ var UI = exports.ui = function (options) {
             UI.highlighter = new Highlighter(document_element);
             UI.text_selector = new TextSelector(document_element);
             UI.counts_manager = new CountsManager(document_element, counts_url);
+            var get_counts_fn = UI.counts_manager.getCounts.bind(UI.counts_manager);
             
             var store = app.registry.getUtility('storage');
             
@@ -99,7 +100,7 @@ var UI = exports.ui = function (options) {
               })
               .on("save-annotation", function (evt) {
                 delete evt.annotation["_local"];
-                store.create(evt.annotation);
+                store.create(evt.annotation).then(get_counts_fn);
               });
         },
 
