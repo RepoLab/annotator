@@ -6,7 +6,7 @@ var LineNbrTextSelector = require('./linenbr_textselector').LineNbrTextSelector;
 var Editor = require('./editor').Editor; // need radically different UI.
 var Highlighter = require('./highlighter').Highlighter; // need our own, to better handle temp highlights when editor comes up.
 var Viewer = require('./viewer').Viewer; // need radically different UI.
-var counters = require('./counters'); // our own markers, not in default UI.
+var CountsManager = require('./counters').CountsManager; // our own markers, not in default UI.
 
 var Range = require('xpath-range').Range;
 
@@ -37,6 +37,7 @@ var UI = exports.ui = function (options) {
     var document_element = options.document_element || global.document.body;
     var editor_wysiwyg = options.editor_wysiwyg || null;
     var interactionPoint, linenbr_selector;
+    var counts_url = options.counts_url || "annotator/counts";
     
     // initialize components. have them each render any DOM elements they need.
     // a function w this name gets called by the app, with the app object passed in.
@@ -47,7 +48,8 @@ var UI = exports.ui = function (options) {
             UI.editor = new Editor({ document_element: document_element, editor_element: options.editor_element, editor_wysiwyg: editor_wysiwyg });
             UI.viewer = new Viewer({ document_element: document_element });
             UI.highlighter = new Highlighter(document_element);
-            UI.textselector = new TextSelector(document_element);
+            UI.text_selector = new TextSelector(document_element);
+            UI.counts_manager = new CountsManager(document_element, counts_url);
             
             var store = app.registry.getUtility('storage');
             
@@ -57,7 +59,7 @@ var UI = exports.ui = function (options) {
             
             // employ a broadcast/listener pattern,
             // borrowing their callback.
-            UI.textselector.onSelection = function (selectedRanges, event) {
+            UI.text_selector.onSelection = function (selectedRanges, event) {
               var e;
               if (selectedRanges.length) {
                 e = $.Event("text-selected", { ranges: selectedRanges });
@@ -106,7 +108,7 @@ var UI = exports.ui = function (options) {
         destroy: function () {
             UI.editor.destroy();
             UI.highlighter.destroy();
-            UI.textselector.destroy();
+            UI.text_selector.destroy();
             UI.viewer.destroy();
             UI.counters.destroy();
         },
