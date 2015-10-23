@@ -47,7 +47,7 @@ var UI = exports.ui = function (options) {
             UI.app = app;
         
             UI.editor = new Editor({ document_element: document_element, editor_element: options.editor_element, editor_wysiwyg: editor_wysiwyg });
-            UI.viewer = new Viewer({ document_element: document_element });
+            UI.viewer = new Viewer({ document_element: document_element, viewer_element: options.viewer_element });
             UI.highlighter = new Highlighter(document_element);
             UI.text_selector = new TextSelector(document_element);
             UI.blocks_manager = new BlocksManager(document_element, counts_url, annotations_url);
