@@ -102,6 +102,12 @@ var UI = exports.ui = function (options) {
               .on("save-annotation", function (evt) {
                 delete evt.annotation["_local"];
                 store.create(evt.annotation).then(get_counts_fn);
+              })
+              .on("edit-annotation", function (evt) {
+                console.log("editing", evt.annotation);
+              })
+              .on("delete-annotation", function (evt) {
+                console.log("deleting", evt.annotation);
               });
         },
 
