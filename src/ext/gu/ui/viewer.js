@@ -39,23 +39,40 @@ $.extend(Viewer.prototype, {
     
     // by default, reset the list.
     if (!append) { this.annotations_list.html(""); }
-    
-    var annotation, annotation_id;
-    for (var i=0; i<annotations.length; i++) {
-      annotation = annotations[i].fields || {};
-      annotation_id = annotations[i].pk;
-      this.annotations_list.append(this.renderAnnotation(annotation, annotation_id));
-    }
+
     // get the location from the start element value of the first range of an annotation from the list.
     var position;
     try {
-      var xpath_of_start = annotation.ranges[0].fields.start;
+      var xpath_of_start = annotations[0].fields.ranges[0].fields.start;
       var first_element = this.document_element.find(xpathToSelector(xpath_of_start));
       position = first_element.offset();
       
     } catch (e) {
-      console.log(e)
+      console.log(e);
+    }
+    
+    if (!position) {
       position = { top: 0 }; // default, to fail somewhat gracefully.
+    }
+    
+    var annotation, annotation_id;
+    for (var i=0; i<annotations.length; i++) {
+      annotation = annotations[i].fields || {};
+      // create HTML Ranges from Django's model serialization.
+      var ranges = [];
+      var range_spec, range, anchor_node, focus_node;
+      for (var j=0; j<annotation.ranges.length; j++) {
+        range_spec = annotation.ranges[j].fields;
+        range = document.createRange();
+        anchor_node = this.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
+        focus_node = this.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
+        range.setStart(anchor_node, parseInt(range_spec.start_offset));
+        range.setEnd(focus_node, parseInt(range_spec.end_offset));
+        ranges.push(range);
+      }
+      annotation.ranges = ranges;
+      annotation_id = annotations[i].pk;
+      this.annotations_list.append(this.renderAnnotation(annotation, annotation_id));
     }
     
     this.show(position);
@@ -85,6 +102,11 @@ $.extend(Viewer.prototype, {
         var e = $.Event("delete-annotation", { annotation: annotation });
         viewer.document_element.trigger(e);
       }
+    });
+    // clicks on the note itself should bring up the note's highlight. (later we'll make this a user-defined option).
+    annotation_element.find("div.note").click(function () {
+      var e = $.Event("annotation-selected", { annotation: annotation });
+      viewer.document_element.trigger(e);
     });
     
     return annotation_element;

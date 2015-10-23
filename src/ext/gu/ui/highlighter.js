@@ -89,6 +89,13 @@ var Highlighter = exports.Highlighter = function Highlighter(document_element, o
       self.temp_highlighted_anns.push(evt.annotation);
       self.draw(evt.annotation, self.options.temp_highlight_class);
     });
+    
+    // draw 'normal' highlight when annotation is selected in the Viewer.
+    $(document_element).on("annotation-selected", function (evt) {
+      self.undrawAll(self.temp_highlighted_anns);
+      self.temp_highlighted_anns.push(evt.annotation);
+      self.draw(evt.annotation);
+    });
 };
 
 Highlighter.prototype.destroy = function () {
