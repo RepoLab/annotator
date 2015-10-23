@@ -107,7 +107,14 @@ var UI = exports.ui = function (options) {
                 console.log("editing", evt.annotation);
               })
               .on("delete-annotation", function (evt) {
-                console.log("deleting", evt.annotation);
+                delete evt.annotation["_local"];
+                store.delete(evt.annotation).then(function (obj, status, xhr) {
+                  if (status == "success") {
+                    if (obj.message) { alert(obj.message); }
+                    UI.viewer.close();
+                    get_counts_fn();
+                  }
+                });
               });
         },
 

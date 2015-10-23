@@ -40,10 +40,11 @@ $.extend(Viewer.prototype, {
     // by default, reset the list.
     if (!append) { this.annotations_list.html(""); }
     
-    var annotation;
+    var annotation, annotation_id;
     for (var i=0; i<annotations.length; i++) {
       annotation = annotations[i].fields || {};
-      this.annotations_list.append(this.renderAnnotation(annotation));
+      annotation_id = annotations[i].pk;
+      this.annotations_list.append(this.renderAnnotation(annotation, annotation_id));
     }
     // get the location from the start element value of the first range of an annotation from the list.
     var position;
@@ -68,7 +69,7 @@ $.extend(Viewer.prototype, {
     this.viewer_element.hide();
   },
   
-  renderAnnotation: function (annotation) {
+  renderAnnotation: function (annotation, annotation_id) {
     var annotation_element = $(this.annotation_template);
     annotation_element.append("<div class='note'>" + (annotation.text || "") + "</div>");
     
@@ -80,6 +81,7 @@ $.extend(Viewer.prototype, {
     });
     annotation_element.find("a.delete_btn").click(function () {
       if (window.confirm("Are you sure you want to delete this annotation?")) {
+        annotation.id = annotation_id;
         var e = $.Event("delete-annotation", { annotation: annotation });
         viewer.document_element.trigger(e);
       }
