@@ -212,7 +212,8 @@ Highlighter.prototype.undraw = function (annotation) {
             $(h).replaceWith(h.childNodes);
         }
     }
-    delete annotation._local.highlights;
+
+    this.element.normalize();
 };
 
 // Public: Redraw the highlights for the given annotation.
@@ -222,6 +223,7 @@ Highlighter.prototype.undraw = function (annotation) {
 // Returns the list of newly-drawn highlights.
 Highlighter.prototype.redraw = function (annotation) {
     this.undraw(annotation);
+    delete annotation._local.highlights;
     return this.draw(annotation);
 };
 

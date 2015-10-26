@@ -22,8 +22,12 @@ var Viewer = exports.Viewer = function (options) {
     
     // load annotations when the event arises.
     var viewer = this;
-    this.document_element.on("annotations-retrieved", function (evt) {
+    this.document_element
+    .on("annotations-retrieved", function (evt) {
       viewer.loadAnnotations(evt.annotations);
+    })
+    .on("text-deselected", function (evt) {
+      viewer.dehighlightAll();
     });
 }
 
@@ -31,9 +35,9 @@ Viewer.offset_top = 23;
 
 $.extend(Viewer.prototype, {
   
-  loadAnnotations: function (annotations, append) {
+  loadAnnotations: function (annotation_records, append) {
     // if the list is empty, return.
-    if (!annotations || !annotations.length) return;
+    if (!annotation_records || !annotation_records.length) return;
     
     append = append || false;
     
@@ -43,7 +47,7 @@ $.extend(Viewer.prototype, {
     // get the location from the start element value of the first range of an annotation from the list.
     var position;
     try {
-      var xpath_of_start = annotations[0].fields.ranges[0].fields.start;
+      var xpath_of_start = annotation_records[0].fields.ranges[0].fields.start;
       var first_element = this.document_element.find(xpathToSelector(xpath_of_start));
       position = first_element.offset();
       
@@ -56,13 +60,15 @@ $.extend(Viewer.prototype, {
     }
     
     var annotation, annotation_id;
-    for (var i=0; i<annotations.length; i++) {
-      annotation = annotations[i].fields || {};
+    for (var i=0; i<annotation_records.length; i++) {
+      annotation = annotation_records[i].fields || {};
       // create HTML Ranges from Django's model serialization.
       var ranges = [];
+      var range_specs = [];
       var range_spec, range, anchor_node, focus_node;
       for (var j=0; j<annotation.ranges.length; j++) {
         range_spec = annotation.ranges[j].fields;
+        range_specs.push(range_spec);
         range = document.createRange();
         anchor_node = this.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
         focus_node = this.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
@@ -71,7 +77,8 @@ $.extend(Viewer.prototype, {
         ranges.push(range);
       }
       annotation.ranges = ranges;
-      annotation_id = annotations[i].pk;
+      annotation.range_specs = range_specs;
+      annotation_id = annotation_records[i].pk;
       this.annotations_list.append(this.renderAnnotation(annotation, annotation_id));
     }
     
@@ -84,6 +91,10 @@ $.extend(Viewer.prototype, {
   
   close: function () {
     this.viewer_element.hide();
+  },
+  
+  dehighlightAll: function () {
+    this.viewer_element.find("div.note").removeClass("highlighted");
   },
   
   renderAnnotation: function (annotation, annotation_id) {
@@ -105,8 +116,26 @@ $.extend(Viewer.prototype, {
     });
     // clicks on the note itself should bring up the note's highlight. (later we'll make this a user-defined option).
     annotation_element.find("div.note").click(function () {
+      // refresh the annotation's ranges from the data. for some reason, they're getting redefined as a result of the highlighting code. Note that the range specs have already been resolved from Django's model serialization.
+      // create HTML Ranges from Django's model serialization.
+      var ranges = [];
+      var range_spec, range, anchor_node, focus_node;
+      for (var j=0; j<annotation.range_specs.length; j++) {
+        range_spec = annotation.range_specs[j];
+        range = document.createRange();
+        anchor_node = viewer.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
+        focus_node = viewer.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
+        range.setStart(anchor_node, parseInt(range_spec.start_offset));
+        range.setEnd(focus_node, parseInt(range_spec.end_offset));
+        ranges.push(range);
+      }
+      annotation.ranges = ranges;
+      
       var e = $.Event("annotation-selected", { annotation: annotation });
       viewer.document_element.trigger(e);
+      // select just this annotation in the list.
+      viewer.dehighlightAll();
+      $(this).addClass("highlighted");
     });
     
     return annotation_element;
