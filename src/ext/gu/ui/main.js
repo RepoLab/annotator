@@ -99,12 +99,13 @@ var UI = exports.ui = function (options) {
                 var selection = global.getSelection();
                 selection.removeAllRanges();
               })
-              .on("save-annotation", function (evt) {
+              .on("save-new-annotation", function (evt) {
                 delete evt.annotation["_local"];
                 store.create(evt.annotation).then(get_counts_fn);
               })
-              .on("edit-annotation", function (evt) {
-                console.log("editing", evt.annotation);
+              .on("update-annotation", function (evt) {
+                delete evt.annotation["_local"];
+                store.update(evt.annotation).then(get_counts_fn);
               })
               .on("delete-annotation", function (evt) {
                 delete evt.annotation["_local"];

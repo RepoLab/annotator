@@ -37,7 +37,11 @@ var Editor = exports.Editor = function (options) {
     this.editor_wysiwyg = options.editor_wysiwyg;
     
     this.fields = [];
-    this.controls = [];
+    this.controls = {
+      add: this.editor_element.find(".annotator-controls .annotator-add"),
+      edit: this.editor_element.find(".annotator-controls .annotator-edit"),
+    };
+    this.mode = "add";
     this.annotation = {};
 
     var self = this;
@@ -46,7 +50,10 @@ var Editor = exports.Editor = function (options) {
         .on("submit." + NS, 'form', function (e) {
             self._onFormSubmit(e);
         })
-        .on("click." + NS, '.annotator-save', function (e) {
+        .on("click." + NS, '.annotator-add', function (e) {
+            self._onSaveClick(e);
+        })
+        .on("click." + NS, '.annotator-edit', function (e) {
             self._onSaveClick(e);
         })
         .on("click." + NS, '.annotator-cancel', function (e) {
@@ -61,9 +68,12 @@ var Editor = exports.Editor = function (options) {
         
     this.document_element
         .on("new-annotation", function (evt) {
-          self.load(evt.annotation, evt.position);
+          self.load(evt.annotation, evt.position, "add");
         }).on("text-deselected", function (evt) {
           self.cancel();
+        })
+        .on("edit-annotation", function (evt) {
+          self.load(evt.annotation, evt.position, "edit");
         });
 }
 
@@ -101,7 +111,7 @@ $.extend(Editor.prototype, {
     //
     // Returns a Promise that is resolved when the editor is submitted, or
     // rejected if editing is cancelled.
-    load: function (annotation, position) {
+    load: function (annotation, position, mode) {
         this.annotation = annotation;
 
         for (var i = 0, len = this.fields.length; i < len; i++) {
@@ -111,6 +121,20 @@ $.extend(Editor.prototype, {
         
         // load the wysiwyg.
         this.editor_wysiwyg.code.set(annotation.text || "");
+
+        
+        // set up editor UI, with correct form action for mode.
+        
+        if (mode === "edit") {
+          this.controls.add.hide();
+          this.controls.edit.show();
+          // put the annotation.id into input.note-id.
+          this.editor_element.find("input.note-id", annotation['id']);
+        } else {
+          this.controls.edit.hide();
+          this.controls.add.show();
+        }
+        this.mode = mode;
 
         var self = this;
         return new Promise(function (resolve, reject) {
@@ -135,7 +159,13 @@ $.extend(Editor.prototype, {
         this.annotation.text = this.editor_wysiwyg.code.get();
         
         // announce there is an annotation to save. hopefully, a Store will be listening.
-        var aEvt = $.Event("save-annotation", { annotation: this.annotation });
+        var action;
+        if (this.mode === "add") {
+          var action = "save-new-annotation";
+        } else {
+          var action = "update-annotation";
+        }
+        var aEvt = $.Event(action, { annotation: this.annotation });
         this.document_element.trigger(aEvt);
         
         this.hide();

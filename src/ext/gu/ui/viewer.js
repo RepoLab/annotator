@@ -78,8 +78,8 @@ $.extend(Viewer.prototype, {
       }
       annotation.ranges = ranges;
       annotation.range_specs = range_specs;
-      annotation_id = annotation_records[i].pk;
-      this.annotations_list.append(this.renderAnnotation(annotation, annotation_id));
+      annotation.id = annotation_records[i].pk;
+      this.annotations_list.append(this.renderAnnotation(annotation));
     }
     
     this.show(position);
@@ -97,19 +97,21 @@ $.extend(Viewer.prototype, {
     this.viewer_element.find("div.note").removeClass("highlighted");
   },
   
-  renderAnnotation: function (annotation, annotation_id) {
+  renderAnnotation: function (annotation) {
     var annotation_element = $(this.annotation_template);
     annotation_element.append("<div class='note'>" + (annotation.text || "") + "</div>");
     
     // put controls in here, where we have easy access to the annotation associated with this HTML stuff.
     var viewer = this;
     annotation_element.find("a.edit_btn").click(function () {
-      var e = $.Event("edit-annotation", { annotation: annotation });
+      var viewer_position = viewer.viewer_element.offset();
+      viewer_position.top = viewer_position.top + Viewer.offset_top;
+      var e = $.Event("edit-annotation", { annotation: annotation, position: viewer_position });
+      viewer.close();
       viewer.document_element.trigger(e);
     });
     annotation_element.find("a.delete_btn").click(function () {
       if (window.confirm("Are you sure you want to delete this annotation?")) {
-        annotation.id = annotation_id;
         var e = $.Event("delete-annotation", { annotation: annotation });
         viewer.document_element.trigger(e);
       }
