@@ -1,10 +1,10 @@
 "use strict";
 
+var $ = require('jquery');
+
 var Range = require('xpath-range').Range;
 
 var util = require('../../../util');
-
-var $ = util.$;
 
 var TEXTSELECTOR_NS = 'annotator-textselector';
 
@@ -32,7 +32,7 @@ function TextSelector(document_element, options) {
         var self = this;
         this.document = this.element.ownerDocument;
 
-        $(this.document.body)
+        $(document_element) // (this.document.body)
             .on("mouseup." + TEXTSELECTOR_NS, function (e) {
                 self._checkForEndSelection(e);
                 self._mouseDownEvent = null;
@@ -126,10 +126,16 @@ TextSelector.prototype._checkForEndSelection = function (event) {
 
     // Get the currently selected ranges.
     var selectedRanges = this.captureDocumentSelection();
-
     if (selectedRanges.length === 0) {
         _nullSelection();
         return;
+    } else if (selectedRanges.length === 1) {
+      // case of a single, blank text node selected (eg; a space between words).
+      var selectedRange = selectedRanges[0];
+      if ((selectedRange.start === selectedRange.end) && selectedRange.start.data.trim() === "") {
+        _nullSelection();
+        return;
+      }
     }
 
     // Don't show the adder if the selection was of a part of Annotator itself.

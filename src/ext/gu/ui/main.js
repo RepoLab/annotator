@@ -1,6 +1,8 @@
 /*package annotator.ext.gu.ui */
 "use strict";
 
+var $ = require('jquery');
+
 var TextSelector = require('./textselector').TextSelector; // use default whenever possible.
 var LineNbrTextSelector = require('./linenbr_textselector').LineNbrTextSelector; // ours. for poetry line nbrs -- select line.
 var Editor = require('./editor').Editor; // need radically different UI.
@@ -32,12 +34,13 @@ function trim(s) {
  * users to create annotations by selecting text within (a part of) the
  * document.
  */
-var UI = exports.ui = function (options) {
+var UI = function (options) {
     options = options || {};
     var document_element = options.document_element || global.document.body;
     var editor_wysiwyg = options.editor_wysiwyg || null;
     var interactionPoint, linenbr_selector;
     var counts_url = options.counts_url || "annotator/counts";
+    var counts_selector = options.counts_selector || "#counts";
     var annotations_url = options.annotations_url || "annotator/get";
     
     // initialize components. have them each render any DOM elements they need.
@@ -50,7 +53,7 @@ var UI = exports.ui = function (options) {
             UI.viewer = new Viewer({ document_element: document_element, viewer_element: options.viewer_element });
             UI.highlighter = new Highlighter(document_element);
             UI.text_selector = new TextSelector(document_element);
-            UI.blocks_manager = new BlocksManager(document_element, counts_url, annotations_url);
+            UI.blocks_manager = new BlocksManager(document_element, counts_url, annotations_url, counts_selector);
             var get_counts_fn = UI.blocks_manager.getCounts.bind(UI.blocks_manager);
             
             var store = app.registry.getUtility('storage');
@@ -166,3 +169,5 @@ var UI = exports.ui = function (options) {
     
     return functions;
 }
+
+exports.ui = UI;

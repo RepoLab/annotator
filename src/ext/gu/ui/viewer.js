@@ -1,5 +1,7 @@
 "use strict";
 
+var $ = require('jquery');
+
 var xpathToSelector = require('./util').xpathToSelector;
 
 /*
@@ -139,6 +141,10 @@ $.extend(Viewer.prototype, {
       viewer.dehighlightAll();
       $(this).addClass("highlighted");
     });
+    
+    // give notice that the annotation has been rendered.
+    var e = $.Event("annotation-rendered", { annotation: annotation, element: annotation_element });
+    this.document_element.trigger(e);
     
     return annotation_element;
   }

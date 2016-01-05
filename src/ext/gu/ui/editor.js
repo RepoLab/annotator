@@ -1,5 +1,7 @@
 "use strict";
 
+var $ = require('jquery');
+
 var util = require('../../../util');
 
 var _t = util.gettext;
@@ -69,7 +71,8 @@ var Editor = exports.Editor = function (options) {
     this.document_element
         .on("new-annotation", function (evt) {
           self.load(evt.annotation, evt.position, "add");
-        }).on("text-deselected", function (evt) {
+        })
+        .on("text-deselected", function (evt) {
           self.cancel();
         })
         .on("edit-annotation", function (evt) {
@@ -92,8 +95,7 @@ $.extend(Editor.prototype, {
       setTimeout(
         function () {
           if (wysiwyg){
-            wysiwyg.focus.setEnd();
-            wysiwyg.caret.setOffset(0);
+            wysiwyg.focus.end();
           }
         }
       );
@@ -121,7 +123,6 @@ $.extend(Editor.prototype, {
         
         // load the wysiwyg.
         this.editor_wysiwyg.code.set(annotation.text || "");
-
         
         // set up editor UI, with correct form action for mode.
         

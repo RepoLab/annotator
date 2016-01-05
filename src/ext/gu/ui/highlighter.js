@@ -1,5 +1,7 @@
 "use strict";
 
+var $ = require('jquery');
+
 var Range = require('xpath-range').Range;
 
 var util = require('../../../util');

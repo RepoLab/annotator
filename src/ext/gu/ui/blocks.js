@@ -1,16 +1,19 @@
 "use strict";
 
-var xpathToSelector = require('./util').xpathToSelector;
+var $ = require('jquery');
+
 
 /*
  * get counts of annotations by meaningful blocks on the page,
  * given by 
  */
-function BlocksManager(document_element, counts_url, annotations_url) {
+function BlocksManager(document_element, counts_url, annotations_url, counts_selector) {
   this.document_element = $(document_element);
   this.counts_url = counts_url;
+  this.counts_selector = counts_selector;
   this.annotations_url = annotations_url;
   this.counter_template = "<a class='counter unselectable'>&nbsp;</a>";
+  this.xpathToSelector = require('./util').xpathToSelector;
   this.getCounts();
   
   // refresh placement of counters when browser window gets resized.
@@ -24,11 +27,11 @@ $.extend(BlocksManager.prototype, {
     var counts_div = $("#counts");
     counts_div.find(".counter").remove();
     var counts_mgr = this;
-    $.ajax(this.counts_url, { dataType: 'json' })
+    return $.ajax(this.counts_url, { dataType: 'json' })
       .done(function (counts_array) {
         $(counts_array).each(function () {
           var count_obj = this;
-          var block_element = counts_mgr.document_element.find(xpathToSelector(count_obj.block_id));
+          var block_element = counts_mgr.document_element.find(counts_mgr.xpathToSelector(count_obj.block_id));
           // create a counter and place it into the counts div.
           var counter = $(counts_mgr.counter_template);
           counts_div.append(counter);
