@@ -14,7 +14,7 @@ Here is a list of modules that trigger events, and what the events are for:
 
 **LineNbrTextSelector**. This is a custom module which extends TextSelector. We use it for the special case of allowing lines of poetry to be selected by clicking on a preceding line number. It also triggers a *"text-selected"* event.
 
-**Viewer**. Our version of the Viewer module triggers an *"edit-annotation"* or *"delete-annotation"* event whenever the appropriate control associated with an individual annotation in the Viewer is clicked. The Viewer also triggers an *"annotation-selected"* event whenever the Viewer element which displays the annotation is clicked, so the Highlighter can redraw highlights. It also triggers an *"annotation-rendered"* event each time an annotation is drawn into the Viewer, in case anything about the UI needs to adjust to accomodate it.
+**Viewer**. Our version of the Viewer module triggers an *"edit-annotation"* or *"delete-annotation"* event whenever the appropriate control associated with an individual annotation in the Viewer is clicked. The Viewer also triggers an *"annotation-selected"* event whenever the Viewer element which displays the annotation is clicked, so the Highlighter can redraw highlights. It also triggers an *"annotation-rendered"* event each time an annotation is drawn into the Viewer, in case anything about the UI needs to adjust to accomodate it, or if any annotation content might need to have functionality enabled (eg; image popups).
 
 
 .. _Annotator home page: http://annotatorjs.org/

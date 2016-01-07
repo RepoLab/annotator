@@ -22,29 +22,30 @@ function isAnnotator(element) {
 
 // TextSelector monitors a document (or a specific element) for text selections
 // and can notify another object of a selection event
-function TextSelector(document_element, options) {
-    this.element = document_element;
+function TextSelector(options) {
+    this.document_element = options.document_element;
+    this.html_document_element = this.document_element.get(0);
     this.options = $.extend(true, {}, TextSelector.options, options);
     this.onSelection = this.options.onSelection;
 
-    if (typeof this.element.ownerDocument !== 'undefined' &&
-        this.element.ownerDocument !== null) {
+    if (typeof this.html_document_element.ownerDocument !== 'undefined' &&
+        this.html_document_element.ownerDocument !== null) {
         var self = this;
-        this.document = this.element.ownerDocument;
+        this.document = this.html_document_element.ownerDocument;
 
-        $(document_element) // (this.document.body)
-            .on("mouseup." + TEXTSELECTOR_NS, function (e) {
-                self._checkForEndSelection(e);
-                self._mouseDownEvent = null;
-            })
-            .on("mousedown." + TEXTSELECTOR_NS, function (e) {
-              self._mouseDownEvent = e;
-            });
+        $(this.document_element)
+          .on("mouseup." + TEXTSELECTOR_NS, function (e) {
+              self._checkForEndSelection(e);
+              self._mouseDownEvent = null;
+          })
+          .on("mousedown." + TEXTSELECTOR_NS, function (e) {
+            self._mouseDownEvent = e;
+          });
     } else {
         console.warn("You created an instance of the TextSelector on an " +
                      "element that doesn't have an ownerDocument. This won't " +
                      "work! Please ensure the element is added to the DOM " +
-                     "before the plugin is configured:", this.element);
+                     "before the plugin is configured:", this.html_document_element);
     }
 }
 
@@ -72,9 +73,9 @@ TextSelector.prototype.captureDocumentSelection = function () {
     for (i = 0; i < selection.rangeCount; i++) {
         var r = selection.getRangeAt(i),
             browserRange = new Range.BrowserRange(r),
-            normedRange = browserRange.normalize().limit(this.element);
+            normedRange = browserRange.normalize().limit(this.html_document_element);
 
-        // If the new range falls fully outside our this.element, we should
+        // If the new range falls fully outside our this.html_document_element, we should
         // add it back to the document but not return it from this method.
         if (normedRange === null) {
             rangesToIgnore.push(r);

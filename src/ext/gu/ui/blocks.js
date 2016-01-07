@@ -7,17 +7,24 @@ var $ = require('jquery');
  * get counts of annotations by meaningful blocks on the page,
  * given by 
  */
-function BlocksManager(document_element, counts_url, annotations_url, counts_selector) {
-  this.document_element = $(document_element);
-  this.counts_url = counts_url;
-  this.counts_selector = counts_selector;
-  this.annotations_url = annotations_url;
-  this.counter_template = "<a class='counter unselectable'>&nbsp;</a>";
+function BlocksManager(options) {
+  this.document_element = options.document_element;
+  this.counts_url = options.counts_url || BlocksManager.DEFAULTS.counts_url;
+  this.counts_selector = options.counts_selector || BlocksManager.DEFAULTS.counts_selector;
+  this.annotations_url = options.annotations_url || BlocksManager.DEFAULTS.annotations_url;
+  this.counter_template = options.counter_template || BlocksManager.DEFAULTS.counter_template;
   this.xpathToSelector = require('./util').xpathToSelector;
   this.getCounts();
   
   // refresh placement of counters when browser window gets resized.
   $(window).on('resize', this.getCounts.bind(this));
+}
+
+BlocksManager.DEFAULTS = {
+  counter_template: "<a class='counter unselectable'>&nbsp;</a>",
+  counts_url: "annotator/counts",
+  counts_selector: "#counts",
+  annotations_url: "annotator/get"
 }
 
 $.extend(BlocksManager.prototype, {

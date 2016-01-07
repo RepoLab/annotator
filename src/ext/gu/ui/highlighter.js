@@ -68,40 +68,39 @@ function reanchorRange(range, rootElement) {
 // options - An options Object containing configuration options for the plugin.
 //           See `Highlighter.options` for available options.
 //
-var Highlighter = exports.Highlighter = function Highlighter(document_element, options) {
-    this.element = document_element;
+var Highlighter = exports.Highlighter = function Highlighter(options) {
+    this.document_element = options.document_element;
+    this.html_document_element = this.document_element.get(0);
     this.options = $.extend(true, {}, Highlighter.defaults, options);
     
     this.temp_highlighted_anns = [];
     
     var self = this;
     
-    $(document_element)
+    $(this.document_element)
       .on("text-selected", function (evt) {
         // unhighlight any temp highlights. & replace temp ann's with a new one.
-        self.undrawAll(self.temp_highlighted_anns);
-        self.temp_highlighted_anns = [];
+        self.undrawAll();
       })
       .on("text-deselected", function (evt) {
-        self.undrawAll(self.temp_highlighted_anns);
+        self.undrawAll();
+      })
+      .on("new-annotation", function (evt) {
+        self.temp_highlighted_anns.push(evt.annotation);
+        self.draw(evt.annotation, self.options.temp_highlight_class);
+      })
+      .on("annotation-selected", function (evt) {
+        self.undrawAll();
+        self.temp_highlighted_anns.push(evt.annotation);
+        self.draw(evt.annotation);
+      })
+      .on("viewer-closed", function (evt) {
+        self.undrawAll();
       });
-    
-    // control what happens when an annotation gets created.
-    $(document_element).on("new-annotation", function (evt) {
-      self.temp_highlighted_anns.push(evt.annotation);
-      self.draw(evt.annotation, self.options.temp_highlight_class);
-    });
-    
-    // draw 'normal' highlight when annotation is selected in the Viewer.
-    $(document_element).on("annotation-selected", function (evt) {
-      self.undrawAll(self.temp_highlighted_anns);
-      self.temp_highlighted_anns.push(evt.annotation);
-      self.draw(evt.annotation);
-    });
 };
 
 Highlighter.prototype.destroy = function () {
-    $(this.element)
+    $(this.document_element)
         .find("." + this.options.highlight_class)
         .each(function (_, el) {
             $(el).contents().insertBefore(el);
@@ -156,7 +155,7 @@ Highlighter.prototype.draw = function (annotation, css_class) {
     var normedRanges = [];
 
     for (var i = 0, ilen = annotation.ranges.length; i < ilen; i++) {
-        var r = reanchorRange(annotation.ranges[i], this.element);
+        var r = reanchorRange(annotation.ranges[i], this.html_document_element);
         if (r !== null) {
             normedRanges.push(r);
         }
@@ -212,10 +211,11 @@ Highlighter.prototype.undraw = function (annotation) {
         var h = annotation._local.highlights[i];
         if (h.parentNode !== null) {
             $(h).replaceWith(h.childNodes);
+            h.normalize();
         }
     }
 
-    this.element.normalize();
+    this.html_document_element.normalize();
 };
 
 // Public: Redraw the highlights for the given annotation.
@@ -234,9 +234,9 @@ Highlighter.prototype.redraw = function (annotation) {
 // annotations -[] .
 //
 // Returns nothing.
-Highlighter.prototype.undrawAll = function (annotations) {
-  for (var i = 0, len = annotations.length; i < len; i++) {
-    this.undraw(annotations.pop());
+Highlighter.prototype.undrawAll = function () {
+  for (var i = 0, len = this.temp_highlighted_anns.length; i < len; i++) {
+    this.undraw(this.temp_highlighted_anns[i]);
   }
 };
 

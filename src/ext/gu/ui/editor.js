@@ -34,14 +34,17 @@ function preventEventDefault(event) {
 var Editor = exports.Editor = function (options) {
     this.options = options || {};
 
-    this.document_element = $(options.document_element);
-    this.editor_element = $(options.editor_element);
-    this.editor_wysiwyg = options.editor_wysiwyg;
+    this.document_element = $(this.options.document_element); // will be there, if instantiated from main.
+    this.editor_element = $(this.options.editor_selector || Editor.DEFAULTS.editor_selector);
+    this.editor_wysiwyg = this.options.editor_wysiwyg || $.noop; // need to support some basic api?
+    
+    this.annotator_add_selector = this.options.annotator_add_selector || Editor.DEFAULTS.annotator_add_selector;
+    this.annotator_edit_selector = this.options.annotator_edit_selector || Editor.DEFAULTS.annotator_edit_selector;
     
     this.fields = [];
     this.controls = {
-      add: this.editor_element.find(".annotator-controls .annotator-add"),
-      edit: this.editor_element.find(".annotator-controls .annotator-edit"),
+      add: this.editor_element.find(this.annotator_add_selector),
+      edit: this.editor_element.find(this.annotator_edit_selector),
     };
     this.mode = "add";
     this.annotation = {};
@@ -80,7 +83,19 @@ var Editor = exports.Editor = function (options) {
         });
 }
 
-Editor.offset_top = 64;
+Editor.DEFAULTS = {
+  editor_selector: "#annotator-editor",
+  offset: { top: 64, left: 0 },
+  defaultFields: true,
+  annotator_add_selector: ".annotator-controls .annotator-add",
+  annotator_edit_selector: ".annotator-controls .annotator-edit",
+};
+
+// Classes to toggle state.
+Editor.classes = {
+    hide: 'annotator-hide',
+    focus: 'annotator-focus'
+};
 
 $.extend(Editor.prototype, {
 
@@ -89,7 +104,11 @@ $.extend(Editor.prototype, {
     },
 
     show: function (position) {
-      this.editor_element.show().offset({ top: position.top - Editor.offset_top });
+      this.editor_element.show().offset({ top: position.top - this.offset.top });
+      debugger;
+      var evt = $.Event("editor-opened", { annotation: this.annotation });
+      this.document_element.trigger(evt);
+      
       // give wysiwyg the focus.
       var wysiwyg = this.editor_wysiwyg;
       setTimeout(
@@ -103,6 +122,7 @@ $.extend(Editor.prototype, {
     
     hide: function () {
       this.editor_element.hide();
+      this.document_element.trigger($.Event("editor-closed"));
     },
 
     // Public: Load an annotation into the editor and display it.
@@ -122,7 +142,7 @@ $.extend(Editor.prototype, {
         }
         
         // load the wysiwyg.
-        this.editor_wysiwyg.code.set(annotation.text || "");
+        // this.editor_wysiwyg.code.set(annotation.text || "");
         
         // set up editor UI, with correct form action for mode.
         
@@ -336,15 +356,3 @@ $.extend(Editor.prototype, {
         }
     }
 });
-
-// Configuration options
-Editor.options = {
-    // Add the default field(s) to the editor.
-    defaultFields: true
-};
-
-// Classes to toggle state.
-Editor.classes = {
-    hide: 'annotator-hide',
-    focus: 'annotator-focus'
-};

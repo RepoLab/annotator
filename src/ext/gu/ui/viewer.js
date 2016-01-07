@@ -12,15 +12,22 @@ var xpathToSelector = require('./util').xpathToSelector;
 
 var Viewer = exports.Viewer = function (options) {
     this.options = options || {};
-    this.viewer_element = $(options.viewer_element || null); // provide from app??
-    this.document_element = $(options.document_element || null);
-
+    this.viewer_element = $(this.options.viewer_selector || Viewer.DEFAULTS.viewer_selector); // provide from app??
+    if (this.viewer_element.length == 0) {
+      throw new Error("The value of viewer_selector passed in does not match any elements on the page.");
+      return;
+    }
+    this.document_element = $(this.options.document_element || null);
+    this.html_document_element = this.document_element.get(0);
+    this.annotations_list = this.viewer_element.find(this.options.list_selector || Viewer.DEFAULTS.list_selector);
     
-    this.annotations_list = this.viewer_element.find("ul.annotations-listing");
+    // if viewer_element has a close button, make it work.
     this.viewer_element.find("a.close_btn").click(this.close.bind(this));
+    // placement of the viewer element on the page.
+    this.offset = this.options.offset || Viewer.DEFAULTS.offset;
     
     // TODO: make this mode-dependent, when we pass in mode.
-    this.annotation_template = "<li class='annotation'><a class='edit_btn' href='#'></a><a class='delete_btn' href='#'></a></li>";
+    this.annotation_template = this.options.annotation_template || Viewer.DEFAULTS.annotation_template;
     
     // load annotations when the event arises.
     var viewer = this;
@@ -30,10 +37,18 @@ var Viewer = exports.Viewer = function (options) {
     })
     .on("text-deselected", function (evt) {
       viewer.dehighlightAll();
+    })
+    .on("editor-opened", function (evt) {
+      viewer.close();
     });
 }
 
-Viewer.offset_top = 23;
+Viewer.DEFAULTS = {
+  offset: { top: 0, left: 4 },
+  viewer_selector: "#annotator-viewer",
+  list_selector: "ul.annotations-listing",
+  annotation_template: "<li class='annotation'><a class='edit_btn' href='#'></a><a class='delete_btn' href='#'></a></li>"
+}
 
 $.extend(Viewer.prototype, {
   
@@ -51,15 +66,19 @@ $.extend(Viewer.prototype, {
     try {
       var xpath_of_start = annotation_records[0].fields.ranges[0].fields.start;
       var first_element = this.document_element.find(xpathToSelector(xpath_of_start));
-      position = first_element.offset();
+      position = this.viewer_element.parent().offset();
+      position.top = first_element.offset().top;
       
     } catch (e) {
       console.log(e);
     }
     
     if (!position) {
-      position = { top: 0 }; // default, to fail somewhat gracefully.
+      position = { top: 0, left: 0 }; // default, to fail somewhat gracefully.
     }
+    
+    // make sure text nodes are not still broken up from prior highlights.
+    this.html_document_element.normalize();
     
     var annotation, annotation_id;
     for (var i=0; i<annotation_records.length; i++) {
@@ -69,14 +88,18 @@ $.extend(Viewer.prototype, {
       var range_specs = [];
       var range_spec, range, anchor_node, focus_node;
       for (var j=0; j<annotation.ranges.length; j++) {
-        range_spec = annotation.ranges[j].fields;
-        range_specs.push(range_spec);
-        range = document.createRange();
-        anchor_node = this.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
-        focus_node = this.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
-        range.setStart(anchor_node, parseInt(range_spec.start_offset));
-        range.setEnd(focus_node, parseInt(range_spec.end_offset));
-        ranges.push(range);
+        try {
+          range_spec = annotation.ranges[j].fields;
+          range_specs.push(range_spec);
+          range = document.createRange();
+          anchor_node = this.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
+          focus_node = this.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
+          range.setStart(anchor_node, parseInt(range_spec.start_offset));
+          range.setEnd(focus_node, parseInt(range_spec.end_offset));
+          ranges.push(range);
+        } catch (e) {
+          console.warn("Could not set annotation range.", e);
+        }
       }
       annotation.ranges = ranges;
       annotation.range_specs = range_specs;
@@ -88,11 +111,13 @@ $.extend(Viewer.prototype, {
   },
   
   show: function (position) {
-    this.viewer_element.show().offset({ top: position.top - Viewer.offset_top });
+    this.viewer_element.show().offset({ top: position.top + this.offset.top, left: position.left + this.offset.left });
   },
   
   close: function () {
     this.viewer_element.hide();
+    var e = $.Event("viewer-closed");
+    this.document_element.trigger(e);
   },
   
   dehighlightAll: function () {
@@ -107,7 +132,7 @@ $.extend(Viewer.prototype, {
     var viewer = this;
     annotation_element.find("a.edit_btn").click(function () {
       var viewer_position = viewer.viewer_element.offset();
-      viewer_position.top = viewer_position.top + Viewer.offset_top;
+      viewer_position.top = viewer_position.top + viewer.offset.top;
       var e = $.Event("edit-annotation", { annotation: annotation, position: viewer_position });
       viewer.close();
       viewer.document_element.trigger(e);
@@ -120,23 +145,7 @@ $.extend(Viewer.prototype, {
     });
     // clicks on the note itself should bring up the note's highlight. (later we'll make this a user-defined option).
     annotation_element.find("div.note").click(function () {
-      // refresh the annotation's ranges from the data. for some reason, they're getting redefined as a result of the highlighting code. Note that the range specs have already been resolved from Django's model serialization.
-      // create HTML Ranges from Django's model serialization.
-      var ranges = [];
-      var range_spec, range, anchor_node, focus_node;
-      for (var j=0; j<annotation.range_specs.length; j++) {
-        range_spec = annotation.range_specs[j];
-        range = document.createRange();
-        anchor_node = viewer.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
-        focus_node = viewer.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
-        range.setStart(anchor_node, parseInt(range_spec.start_offset));
-        range.setEnd(focus_node, parseInt(range_spec.end_offset));
-        ranges.push(range);
-      }
-      annotation.ranges = ranges;
-      
-      var e = $.Event("annotation-selected", { annotation: annotation });
-      viewer.document_element.trigger(e);
+      viewer.selectAnnotationItem(annotation);
       // select just this annotation in the list.
       viewer.dehighlightAll();
       $(this).addClass("highlighted");
@@ -147,5 +156,36 @@ $.extend(Viewer.prototype, {
     this.document_element.trigger(e);
     
     return annotation_element;
+  }, 
+  
+  selectAnnotationItem: function (annotation) {
+    // We need to send this message first, so the document nodes are all normalized
+    // before we try to set the annotation's range(s).
+    var e = $.Event("annotation-selected", { annotation: annotation });
+    this.document_element.trigger(e);
+    
+    
+    // refresh the annotation's ranges from the data. for some reason, they're getting redefined as a result of the highlighting code. Note that the range specs have already been resolved from Django's model serialization.
+    // create HTML Ranges from Django's model serialization.
+    // var ranges = [];
+    // var range_spec, range, anchor_node, focus_node;
+    // try {
+    //   for (var j=0; j<annotation.range_specs.length; j++) {
+    //     range_spec = annotation.range_specs[j];
+    //     range = document.createRange();
+    //     anchor_node = this.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
+    //     focus_node = this.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
+    //     // MUST do setEnd first, because setStart changes the prior parts of the node,
+    //     // making indexing to the end unreliable.
+    //     range.setEnd(focus_node, parseInt(range_spec.end_offset));
+    //     range.setStart(anchor_node, parseInt(range_spec.start_offset));
+    //     ranges.push(range);
+    //   }
+    // } catch(e) {
+    //   console.warn(e, "Cannot set annotation ranges.");
+    //   debugger;
+    // } finally {
+    //   annotation.ranges = ranges;
+    // }
   }
 });

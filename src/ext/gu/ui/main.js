@@ -34,33 +34,35 @@ function trim(s) {
  * users to create annotations by selecting text within (a part of) the
  * document.
  */
-var UI = function (options) {
+var UI_DEFAULTS = {
+  document_element: $("section#content")
+}
+
+var UI = exports.ui = function (options) {
     options = options || {};
-    var document_element = options.document_element || global.document.body;
-    var editor_wysiwyg = options.editor_wysiwyg || null;
+    var document_element = options.document_element = $(options.document_element || UI_DEFAULTS.document_element);
+    
     var interactionPoint, linenbr_selector;
-    var counts_url = options.counts_url || "annotator/counts";
-    var counts_selector = options.counts_selector || "#counts";
-    var annotations_url = options.annotations_url || "annotator/get";
     
     // initialize components. have them each render any DOM elements they need.
     // a function w this name gets called by the app, with the app object passed in.
-    var functions = {
+    var api = {
         start: function (app) {
             UI.app = app;
         
-            UI.editor = new Editor({ document_element: document_element, editor_element: options.editor_element, editor_wysiwyg: editor_wysiwyg });
-            UI.viewer = new Viewer({ document_element: document_element, viewer_element: options.viewer_element });
-            UI.highlighter = new Highlighter(document_element);
-            UI.text_selector = new TextSelector(document_element);
-            UI.blocks_manager = new BlocksManager(document_element, counts_url, annotations_url, counts_selector);
+            UI.editor = new Editor(options);
+            UI.viewer = new Viewer(options);
+            UI.highlighter = new Highlighter(options);
+            UI.text_selector = new TextSelector(options);
+            UI.blocks_manager = new BlocksManager(options);
+            
+            if (options.hasOwnProperty("linenbr_selector")) {
+              UI.linenbr_textselector = new LineNbrTextSelector(options);
+            }
+            
             var get_counts_fn = UI.blocks_manager.getCounts.bind(UI.blocks_manager);
             
             var store = app.registry.getUtility('storage');
-            
-            if (options.hasOwnProperty("linenbr_selector")) {
-              UI.linenbr_textselector = new LineNbrTextSelector(options.linenbr_selector);
-            }
             
             // employ a broadcast/listener pattern,
             // borrowing their callback.
@@ -80,7 +82,7 @@ var UI = function (options) {
             // but I'm not the only listener, and this guarantees the right sequence of events.
             $(document_element)
               .on("text-selected", function (evt) {
-                var ann = functions.makeAnnotation(evt);
+                var ann = api.makeAnnotation(evt);
 
                 // safeguard against annotations that are not associated with text selections.
                 if (!ann || !ann.ranges || !ann.ranges.length) { return; }
@@ -147,12 +149,13 @@ var UI = function (options) {
             for (var i = 0, len = ranges.length; i < len; i++) {
                 var r = ranges[i];
                 var browserRange;
+                var html_document_element = document_element.get(0);  // HTMLElement, not jQuery.
                 if (!(r instanceof Range.NormalizedRange)) {
-                  browserRange = new Range.BrowserRange(r),
-                  r = browserRange.normalize().limit(document_element);
+                  browserRange = new Range.BrowserRange(r);
+                  r = browserRange.normalize().limit(html_document_element);
                 }
                 text.push(trim(r.text()));
-                serializedRanges.push(r.serialize(document_element, UI.highlighter.highlight_class || null));
+                serializedRanges.push(r.serialize(html_document_element, UI.highlighter.highlight_class || null));
             }
 
             var ann = {
@@ -164,10 +167,8 @@ var UI = function (options) {
         }
     }
     
-    // this weirdness is because annotator is expecting an object of functions.
-    $.extend(UI, functions);
+    // this is because annotator is expecting an object of functions.
+    $.extend(UI, api);
     
-    return functions;
+    return api;
 }
-
-exports.ui = UI;
