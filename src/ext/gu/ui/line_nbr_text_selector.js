@@ -6,7 +6,7 @@ var $ = require('jquery');
  * Trap clicks on line nbrs (in poetry) as clicks on the whole line:
  */
 function LineNbrTextSelector(options) {
-  var linenbr_selector = options.linenbr_selector;
+  var linenbr_selector = options.line_nbr_selector;
   $(linenbr_selector).click(function selectNumberedLine (evt) {
     // if click is over the line nbr, select the whole line.
     var click_x = evt.offsetX;

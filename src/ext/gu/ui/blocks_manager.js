@@ -18,6 +18,9 @@ function BlocksManager(options) {
   
   // refresh placement of counters when browser window gets resized.
   $(window).on('resize', this.getCounts.bind(this));
+  
+  // when an annotation is deleted, just refresh all of the block markers on the page.
+  this.document_element.on("annotation-deleted annotation-created", this.getCounts.bind(this))
 }
 
 BlocksManager.DEFAULTS = {

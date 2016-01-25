@@ -1,0 +1,27 @@
+{
+  "name": "inflector",
+  "version": "0.0.1",
+  "description": "Inflector for Node.js, ported from Codeigniter PHP Framework",
+  "keywords": [],
+  "author": {
+    "name": "Vadim Demedes",
+    "email": "sbioko@gmail.com"
+  },
+  "dependencies": {},
+  "main": "index",
+  "engines": {
+    "node": "0.4.x"
+  },
+  "_id": "inflector@0.0.1",
+  "_nodeSupported": true,
+  "_npmVersion": "0.2.12-1",
+  "_nodeVersion": "v0.5.0-pre",
+  "dist": {
+    "shasum": "1d36b2f266368238d292d8c7826a4c273556a7c4",
+    "tarball": "http://registry.npmjs.org/inflector/-/inflector-0.0.1.tgz"
+  },
+  "directories": {},
+  "_shasum": "1d36b2f266368238d292d8c7826a4c273556a7c4",
+  "_from": "inflector@",
+  "_resolved": "https://registry.npmjs.org/inflector/-/inflector-0.0.1.tgz"
+}

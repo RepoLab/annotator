@@ -40,6 +40,9 @@ var Viewer = exports.Viewer = function (options) {
     })
     .on("editor-opened", function (evt) {
       viewer.close();
+    })
+    .on("annotation-deleted", function (evt) {
+      viewer.close();
     });
 }
 
@@ -159,33 +162,30 @@ $.extend(Viewer.prototype, {
   }, 
   
   selectAnnotationItem: function (annotation) {
-    // We need to send this message first, so the document nodes are all normalized
-    // before we try to set the annotation's range(s).
-    var e = $.Event("annotation-selected", { annotation: annotation });
-    this.document_element.trigger(e);
-    
-    
     // refresh the annotation's ranges from the data. for some reason, they're getting redefined as a result of the highlighting code. Note that the range specs have already been resolved from Django's model serialization.
     // create HTML Ranges from Django's model serialization.
-    // var ranges = [];
-    // var range_spec, range, anchor_node, focus_node;
-    // try {
-    //   for (var j=0; j<annotation.range_specs.length; j++) {
-    //     range_spec = annotation.range_specs[j];
-    //     range = document.createRange();
-    //     anchor_node = this.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
-    //     focus_node = this.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
-    //     // MUST do setEnd first, because setStart changes the prior parts of the node,
-    //     // making indexing to the end unreliable.
-    //     range.setEnd(focus_node, parseInt(range_spec.end_offset));
-    //     range.setStart(anchor_node, parseInt(range_spec.start_offset));
-    //     ranges.push(range);
-    //   }
-    // } catch(e) {
-    //   console.warn(e, "Cannot set annotation ranges.");
-    //   debugger;
-    // } finally {
-    //   annotation.ranges = ranges;
-    // }
+    var ranges = [];
+    var range_spec, range, anchor_node, focus_node;
+    try {
+      for (var j=0; j<annotation.range_specs.length; j++) {
+        range_spec = annotation.range_specs[j];
+        range = document.createRange();
+        anchor_node = this.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
+        focus_node = this.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
+        // MUST do setEnd first, because setStart changes the prior parts of the node,
+        // making indexing to the end unreliable.
+        range.setEnd(focus_node, parseInt(range_spec.end_offset));
+        range.setStart(anchor_node, parseInt(range_spec.start_offset));
+        ranges.push(range);
+      }
+    } catch(e) {
+      console.warn(e, "Cannot set annotation ranges.");
+      debugger;
+    } finally {
+      annotation.ranges = ranges;
+    }
+
+    var e = $.Event("annotation-selected", { annotation: annotation });
+    this.document_element.trigger(e);
   }
 });

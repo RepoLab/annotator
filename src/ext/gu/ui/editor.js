@@ -35,8 +35,8 @@ var Editor = exports.Editor = function (options) {
     this.options = options || {};
 
     this.document_element = $(this.options.document_element); // will be there, if instantiated from main.
-    this.editor_element = $(this.options.editor_selector || Editor.DEFAULTS.editor_selector);
-    this.editor_wysiwyg = this.options.editor_wysiwyg || $.noop; // need to support some basic api?
+    this.editor_element = $(this.options.selector || Editor.DEFAULTS.selector);
+    this.editor_wysiwyg = this.options.wysiwyg || $.noop; // need to support some basic api?
     
     this.annotator_add_selector = this.options.annotator_add_selector || Editor.DEFAULTS.annotator_add_selector;
     this.annotator_edit_selector = this.options.annotator_edit_selector || Editor.DEFAULTS.annotator_edit_selector;
@@ -80,12 +80,15 @@ var Editor = exports.Editor = function (options) {
         })
         .on("edit-annotation", function (evt) {
           self.load(evt.annotation, evt.position, "edit");
+        })
+        .on("annotation-created", function (evt) {
+          self.close();
         });
 }
 
 Editor.DEFAULTS = {
-  editor_selector: "#annotator-editor",
-  offset: { top: 64, left: 0 },
+  selector: "#annotator-editor",
+  offset: { top: 60, left: 0 },
   defaultFields: true,
   annotator_add_selector: ".annotator-controls .annotator-add",
   annotator_edit_selector: ".annotator-controls .annotator-edit",
@@ -104,8 +107,7 @@ $.extend(Editor.prototype, {
     },
 
     show: function (position) {
-      this.editor_element.show().offset({ top: position.top - this.offset.top });
-      debugger;
+      this.editor_element.show().offset({ top: position.top - Editor.DEFAULTS.offset.top });
       var evt = $.Event("editor-opened", { annotation: this.annotation });
       this.document_element.trigger(evt);
       
@@ -113,14 +115,12 @@ $.extend(Editor.prototype, {
       var wysiwyg = this.editor_wysiwyg;
       setTimeout(
         function () {
-          if (wysiwyg){
-            wysiwyg.focus.end();
-          }
+          if (wysiwyg){ wysiwyg.focus.end(); }
         }
       );
     },
     
-    hide: function () {
+    close: function () {
       this.editor_element.hide();
       this.document_element.trigger($.Event("editor-closed"));
     },
@@ -177,7 +177,9 @@ $.extend(Editor.prototype, {
         }
         
         // get text from wysiwyg.
-        this.annotation.text = this.editor_wysiwyg.code.get();
+        this.annotation.text = (this.editor_wysiwyg.code.get() || "").trim();
+        // don't save null annotations.
+        if (this.annotation.text === "") { return; }
         
         // announce there is an annotation to save. hopefully, a Store will be listening.
         var action;
@@ -189,7 +191,7 @@ $.extend(Editor.prototype, {
         var aEvt = $.Event(action, { annotation: this.annotation });
         this.document_element.trigger(aEvt);
         
-        this.hide();
+        this.close();
     },
 
     // Public: Cancels the editing process, discarding any edits made to the
@@ -200,7 +202,7 @@ $.extend(Editor.prototype, {
         if (typeof this.dfd !== 'undefined' && this.dfd !== null) {
             this.dfd.reject('editing cancelled');
         }
-        this.hide();
+        this.close();
     },
 
     // Public: Adds an additional form field to the editor. Callbacks can be

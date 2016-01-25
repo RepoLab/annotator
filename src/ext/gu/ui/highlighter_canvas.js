@@ -9,14 +9,14 @@ var util = require('../../../util');
 var Promise = util.Promise;
 
 
-// highlightRange wraps the DOM Nodes within the provided range with a highlight
+// createTempHighlightMarkup wraps the DOM Nodes within the provided range with a highlight
 // element of the specified class and returns the highlight Elements.
 //
 // normedRange - A NormalizedRange to be highlighted.
 // cssClass - A CSS class to use for the highlight (default: 'annotator-hl')
 //
 // Returns an array of highlight Elements.
-function highlightRange(normedRange, cssClass) {
+function createTempHighlightMarkup (normedRange, cssClass) {
     if (typeof cssClass === 'undefined' || cssClass === null) {
         cssClass = 'annotator-hl';
     }
@@ -43,27 +43,11 @@ function highlightRange(normedRange, cssClass) {
 }
 
 
-// reanchorRange will attempt to normalize a range, swallowing Range.RangeErrors
-// for those ranges which are not reanchorable in the current document.
-function reanchorRange(range, rootElement) {
-    try {
-      if ((range.start || range.end) === undefined) {
-        return Range.sniff(range).normalize(rootElement);
-      }
-    } catch (e) {
-        if (!(e instanceof Range.RangeError)) {
-            // Oh Javascript, why you so crap? This will lose the traceback.
-            throw(e);
-        }
-        // Otherwise, we simply swallow the error. Callers are responsible
-        // for only trying to draw valid annotations.
-    }
-    return null;
-}
-
-
-// Highlighter provides a simple way to draw highlighted <span> tags over
-// annotated ranges within a document.
+// Highlighter provides a simple way to draw highlights in an HTML canvas associated
+// with a block of text in a document. It does this by first placing <span> tags over
+// annotated ranges within the document block, then using them to locate drawing in the canvas.
+// We do not keep the <span> tags around, because they mess with subsequent interactions.
+// Also, this allows us to draw multiple, overlapping highlights.
 //
 // element - The root Element on which to dereference annotation ranges and
 //           draw highlights.
@@ -81,7 +65,6 @@ var Highlighter = exports.Highlighter = function Highlighter(options) {
     
     $(this.document_element)
       .on("text-selected", function (evt) {
-        // unhighlight any temp highlights. & replace temp ann's with a new one.
         self.undrawAll();
       })
       .on("text-deselected", function (evt) {
