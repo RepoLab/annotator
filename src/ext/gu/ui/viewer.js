@@ -17,7 +17,7 @@ var Viewer = exports.Viewer = function (options) {
       throw new Error("The value of viewer_selector passed in does not match any elements on the page.");
       return;
     }
-    this.document_element = $(this.options.document_element || null);
+    this.document_element = this.options.document_element;
     this.html_document_element = this.document_element.get(0);
     this.annotations_list = this.viewer_element.find(this.options.list_selector || Viewer.DEFAULTS.list_selector);
     
@@ -115,6 +115,8 @@ $.extend(Viewer.prototype, {
   
   show: function (position) {
     this.viewer_element.show().offset({ top: position.top + this.offset.top, left: position.left + this.offset.left });
+    var e = $.Event("viewer-opened");
+    this.document_element.trigger(e);
   },
   
   close: function () {
@@ -180,7 +182,7 @@ $.extend(Viewer.prototype, {
       }
     } catch(e) {
       console.warn(e, "Cannot set annotation ranges.");
-      debugger;
+      // debugger;
     } finally {
       annotation.ranges = ranges;
     }

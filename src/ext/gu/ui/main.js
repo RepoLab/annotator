@@ -49,7 +49,7 @@ var UI_DEFAULTS = {
 
 var UI = exports.ui = function (options) {
     options = options || {};
-    var document_element = options.document_element = $(options.document_element || UI_DEFAULTS.document_element);
+    var document_element = options.document_element = (options.document_element || UI_DEFAULTS.document_element);
     
     // create modules as specified.
     var option_keys = Object.keys(options);
@@ -94,7 +94,7 @@ var UI = exports.ui = function (options) {
             // listen for text selection events (initiated by user or by program) to start an annotation.
             // I know it looks dumb to declare a broadcaster and then its listener in the same scope,
             // but I'm not the only listener, and this guarantees the right sequence of events.
-            $(document_element)
+            document_element
               .on("text-selected", function (evt) {
                 var ann = api.makeAnnotation(evt);
 
@@ -111,7 +111,7 @@ var UI = exports.ui = function (options) {
                   pageY = evt.pageY;
                 }
                 var e = $.Event("new-annotation", { annotation: ann, position: { left: pageX, top: pageY } });
-                $(document_element).trigger(e);
+                document_element.trigger(e);
               })
               .on("save-new-annotation", function (evt) {
                 delete evt.annotation["_local"];
@@ -137,12 +137,12 @@ var UI = exports.ui = function (options) {
             switch (xhr._action) {
               case "destroy":
                 var e = $.Event("annotation-deleted", { ann: ann });
-                $(document_element).trigger(e);
+                document_element.trigger(e);
                 break;
 
               case "create":
                 var e = $.Event("annotation-created", { ann: ann });
-                $(document_element).trigger(e);
+                document_element.trigger(e);
                 break;
             }
           }

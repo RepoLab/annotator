@@ -47,9 +47,7 @@ function highlightRange(normedRange, cssClass) {
 // for those ranges which are not reanchorable in the current document.
 function reanchorRange(range, rootElement) {
     try {
-      if ((range.start || range.end) === undefined) {
         return Range.sniff(range).normalize(rootElement);
-      }
     } catch (e) {
         if (!(e instanceof Range.RangeError)) {
             // Oh Javascript, why you so crap? This will lose the traceback.
@@ -79,7 +77,7 @@ var Highlighter = exports.Highlighter = function Highlighter(options) {
     
     var self = this;
     
-    $(this.document_element)
+    this.document_element
       .on("text-selected", function (evt) {
         // unhighlight any temp highlights. & replace temp ann's with a new one.
         self.undrawAll();
@@ -101,147 +99,6 @@ var Highlighter = exports.Highlighter = function Highlighter(options) {
       });
 };
 
-Highlighter.prototype.destroy = function () {
-    $(this.document_element)
-        .find("." + this.options.highlight_class)
-        .each(function (_, el) {
-            $(el).contents().insertBefore(el);
-            $(el).remove();
-        });
-};
-
-// Public: Draw highlights for all the given annotations
-//
-// annotations - An Array of annotation Objects for which to draw highlights.
-//
-// Returns nothing.
-Highlighter.prototype.drawAll = function (annotations) {
-    var self = this;
-
-    var p = new Promise(function (resolve) {
-        var highlights = [];
-
-        function loader(annList) {
-            if (typeof annList === 'undefined' || annList === null) {
-                annList = [];
-            }
-
-            var now = annList.splice(0, self.options.chunkSize);
-            for (var i = 0, len = now.length; i < len; i++) {
-                highlights = highlights.concat(self.draw(now[i]));
-            }
-
-            // If there are more to do, do them after a delay
-            if (annList.length > 0) {
-                setTimeout(function () {
-                    loader(annList);
-                }, self.options.chunkDelay);
-            } else {
-                resolve(highlights);
-            }
-        }
-
-        var clone = annotations.slice();
-        loader(clone);
-    });
-
-    return p;
-};
-
-// Public: Draw highlights for the annotation.
-//
-// annotation - An annotation Object for which to draw highlights.
-//
-// Returns an Array of drawn highlight elements.
-Highlighter.prototype.draw = function (annotation, css_class) {
-    var normedRanges = [];
-
-    for (var i = 0, ilen = annotation.ranges.length; i < ilen; i++) {
-        var r = reanchorRange(annotation.ranges[i], this.html_document_element);
-        if (r !== null) {
-            normedRanges.push(r);
-        }
-    }
-
-    var hasLocal = (typeof annotation._local !== 'undefined' &&
-                    annotation._local !== null);
-    if (!hasLocal) {
-        annotation._local = {};
-    }
-    var hasHighlights = (typeof annotation._local.highlights !== 'undefined' &&
-                         annotation._local.highlights === null);
-    if (!hasHighlights) {
-        annotation._local.highlights = [];
-    }
-
-    for (var j = 0, jlen = normedRanges.length; j < jlen; j++) {
-        var normed = normedRanges[j];
-        $.merge(
-            annotation._local.highlights,
-            highlightRange(normed, css_class || this.options.highlightClass)
-        );
-    }
-
-    // Save the annotation data on each highlighter element.
-    $(annotation._local.highlights).data('annotation', annotation);
-
-    // Add a data attribute for annotation id if the annotation has one
-    if (typeof annotation.id !== 'undefined' && annotation.id !== null) {
-        $(annotation._local.highlights)
-            .attr('data-annotation-id', annotation.id);
-    }
-
-    return annotation._local.highlights;
-};
-
-// Public: Remove the drawn highlights for the given annotation.
-//
-// annotation - An annotation Object for which to purge highlights.
-//
-// Returns nothing.
-Highlighter.prototype.undraw = function (annotation) {
-    var hasHighlights = (typeof annotation._local !== 'undefined' &&
-                         annotation._local !== null &&
-                         typeof annotation._local.highlights !== 'undefined' &&
-                         annotation._local.highlights !== null);
-
-    if (!hasHighlights) {
-        return;
-    }
-
-    for (var i = 0, len = annotation._local.highlights.length; i < len; i++) {
-        var h = annotation._local.highlights[i];
-        if (h.parentNode !== null) {
-            $(h).replaceWith(h.childNodes);
-            h.normalize();
-        }
-    }
-
-    this.html_document_element.normalize();
-};
-
-// Public: Redraw the highlights for the given annotation.
-//
-// annotation - An annotation Object for which to redraw highlights.
-//
-// Returns the list of newly-drawn highlights.
-Highlighter.prototype.redraw = function (annotation) {
-    this.undraw(annotation);
-    delete annotation._local.highlights;
-    return this.draw(annotation);
-};
-
-// Public: undraw the highlights for a given set of annotations.
-//
-// annotations -[] .
-//
-// Returns nothing.
-Highlighter.prototype.undrawAll = function () {
-  for (var i = 0, len = this.temp_highlighted_anns.length; i < len; i++) {
-    this.undraw(this.temp_highlighted_anns[i]);
-  }
-};
-
 Highlighter.defaults = {
     // The CSS class to apply to drawn highlights
     highlight_class: 'annotator-hl',
@@ -252,3 +109,147 @@ Highlighter.defaults = {
     // Time (in ms) to pause between drawing chunks of annotations
     chunkDelay: 10
 };
+
+$.extend(Highlighter.prototype, {
+  
+  destroy: function () {
+    this.document_element
+          .find("." + this.options.highlight_class)
+          .each(function (_, el) {
+              $(el).contents().insertBefore(el);
+              $(el).remove();
+          });
+  },
+
+  // Public: Draw highlights for all the given annotations
+  //
+  // annotations - An Array of annotation Objects for which to draw highlights.
+  //
+  // Returns nothing.
+  drawAll: function (annotations) {
+      var self = this;
+
+      var p = new Promise(function (resolve) {
+          var highlights = [];
+
+          function loader(annList) {
+              if (typeof annList === 'undefined' || annList === null) {
+                  annList = [];
+              }
+
+              var now = annList.splice(0, self.options.chunkSize);
+              for (var i = 0, len = now.length; i < len; i++) {
+                  highlights = highlights.concat(self.draw(now[i]));
+              }
+
+              // If there are more to do, do them after a delay
+              if (annList.length > 0) {
+                  setTimeout(function () {
+                      loader(annList);
+                  }, self.options.chunkDelay);
+              } else {
+                  resolve(highlights);
+              }
+          }
+
+          var clone = annotations.slice();
+          loader(clone);
+      });
+
+      return p;
+  },
+
+  // Public: Draw highlights for the annotation.
+  //
+  // annotation - An annotation Object for which to draw highlights.
+  //
+  // Returns an Array of drawn highlight elements.
+  draw: function (annotation, css_class) {
+      var normedRanges = [];
+
+      for (var i = 0, ilen = annotation.ranges.length; i < ilen; i++) {
+          var r = reanchorRange(annotation.ranges[i], this.html_document_element);
+          if (r !== null) {
+              normedRanges.push(r);
+          }
+      }
+
+      var hasLocal = (typeof annotation._local !== 'undefined' &&
+                      annotation._local !== null);
+      if (!hasLocal) {
+        annotation._local = {}
+      }
+      var hasHighlights = (typeof annotation._local.highlights !== 'undefined' &&
+                           annotation._local.highlights === null);
+      if (!hasHighlights) {
+          annotation._local.highlights = [];
+      }
+
+      for (var j = 0, jlen = normedRanges.length; j < jlen; j++) {
+          var normed = normedRanges[j];
+          $.merge(
+              annotation._local.highlights,
+              highlightRange(normed, css_class || this.options.highlightClass)
+          );
+      }
+
+      // Save the annotation data on each highlighter element.
+      $(annotation._local.highlights).data('annotation', annotation);
+
+      // Add a data attribute for annotation id if the annotation has one
+      if (typeof annotation.id !== 'undefined' && annotation.id !== null) {
+          $(annotation._local.highlights)
+              .attr('data-annotation-id', annotation.id);
+      }
+
+      return annotation._local.highlights;
+  },
+
+  // Public: Remove the drawn highlights for the given annotation.
+  //
+  // annotation - An annotation Object for which to purge highlights.
+  //
+  // Returns nothing.
+  undraw: function (annotation) {
+      var hasHighlights = (typeof annotation._local !== 'undefined' &&
+                           annotation._local !== null &&
+                           typeof annotation._local.highlights !== 'undefined' &&
+                           annotation._local.highlights !== null);
+
+      if (!hasHighlights) {
+          return;
+      }
+
+      for (var i = 0, len = annotation._local.highlights.length; i < len; i++) {
+          var h = annotation._local.highlights[i];
+          if (h.parentNode !== null) {
+              $(h).replaceWith(h.childNodes);
+              h.normalize();
+          }
+      }
+
+      this.html_document_element.normalize();
+  },
+
+  // Public: Redraw the highlights for the given annotation.
+  //
+  // annotation - An annotation Object for which to redraw highlights.
+  //
+  // Returns the list of newly-drawn highlights.
+  redraw: function (annotation) {
+      this.undraw(annotation);
+      delete annotation._local.highlights;
+      return this.draw(annotation);
+  },
+
+  // Public: undraw the highlights for a given set of annotations.
+  //
+  // annotations -[] .
+  //
+  // Returns nothing.
+  undrawAll: function () {
+    for (var i = 0, len = this.temp_highlighted_anns.length; i < len; i++) {
+      this.undraw(this.temp_highlighted_anns[i]);
+    }
+  }
+});

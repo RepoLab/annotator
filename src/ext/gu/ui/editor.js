@@ -34,7 +34,7 @@ function preventEventDefault(event) {
 var Editor = exports.Editor = function (options) {
     this.options = options || {};
 
-    this.document_element = $(this.options.document_element); // will be there, if instantiated from main.
+    this.document_element = this.options.document_element; // will be there, if instantiated from main.
     this.editor_element = $(this.options.selector || Editor.DEFAULTS.selector);
     this.editor_wysiwyg = this.options.wysiwyg || $.noop; // need to support some basic api?
     
@@ -83,7 +83,11 @@ var Editor = exports.Editor = function (options) {
         })
         .on("annotation-created", function (evt) {
           self.close();
-        });
+        })
+        .on("viewer-opened", function (evt) {
+          self.close();
+        })
+        ;
 }
 
 Editor.DEFAULTS = {

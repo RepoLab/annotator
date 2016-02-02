@@ -32,7 +32,7 @@ function TextSelector(options) {
         var self = this;
         this.document = this.html_document_element.ownerDocument;
 
-        $(this.document_element)
+        this.document_element
           .on("mouseup." + TEXTSELECTOR_NS, function (e) {
               self._checkForEndSelection(e);
               self._mouseDownEvent = null;
@@ -70,7 +70,7 @@ $.extend(TextSelector.prototype, {
       e = $.Event("text-deselected");
     }
     e = $.extend(event, e);
-    $(this.document_element).trigger(e);
+    this.document_element.trigger(e);
   },
 
   destroy: function () {

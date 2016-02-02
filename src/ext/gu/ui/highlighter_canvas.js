@@ -63,7 +63,7 @@ var Highlighter = exports.Highlighter = function Highlighter(options) {
     
     var self = this;
     
-    $(this.document_element)
+    this.document_element
       .on("text-selected", function (evt) {
         self.undrawAll();
       })
@@ -85,7 +85,7 @@ var Highlighter = exports.Highlighter = function Highlighter(options) {
 };
 
 Highlighter.prototype.destroy = function () {
-    $(this.document_element)
+  this.document_element
         .find("." + this.options.highlight_class)
         .each(function (_, el) {
             $(el).contents().insertBefore(el);
