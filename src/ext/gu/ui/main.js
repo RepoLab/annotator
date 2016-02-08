@@ -124,7 +124,7 @@ var UI = exports.ui = function (options) {
               .on("delete-annotation", function (evt) {
                 delete evt.annotation["_local"];
                 store.delete(evt.annotation).then(function (msg_obj, state, xhr) {
-                  api.sendStoreMessage(msg_obj, state, xhr, evt.annotation);
+                  // api.sendStoreMessage(msg_obj, state, xhr, evt.annotation);
                 });
               });
         },

@@ -41,8 +41,14 @@ var Editor = exports.Editor = function (options) {
     this.annotator_add_selector = this.options.annotator_add_selector || Editor.DEFAULTS.annotator_add_selector;
     this.annotator_edit_selector = this.options.annotator_edit_selector || Editor.DEFAULTS.annotator_edit_selector;
     
+    // any add'l fields passed in as options will get added to the editor.
+    this.field_specs = $.extend({}, (this.options.fields || {}));
     this.fields = [];
-    this.controls = {
+    
+    // any controls passed in will override the defaults, 
+    // so add and edit will have to be specified,
+    // if they are still desired.
+    this.controls = options.controls || {
       add: this.editor_element.find(this.annotator_add_selector),
       edit: this.editor_element.find(this.annotator_edit_selector),
     };
@@ -119,7 +125,10 @@ $.extend(Editor.prototype, {
       var wysiwyg = this.editor_wysiwyg;
       setTimeout(
         function () {
-          if (wysiwyg){ wysiwyg.focus.end(); }
+          if (wysiwyg){ 
+            wysiwyg.focus.end();
+            wysiwyg.code.set(evt.annotation.text || "");
+          }
         }
       );
     },
@@ -139,14 +148,10 @@ $.extend(Editor.prototype, {
     // rejected if editing is cancelled.
     load: function (annotation, position, mode) {
         this.annotation = annotation;
-
-        for (var i = 0, len = this.fields.length; i < len; i++) {
-            var field = this.fields[i];
-            field.load(field.element, this.annotation);
-        }
         
-        // load the wysiwyg.
-        // this.editor_wysiwyg.code.set(annotation.text || "");
+        for (var field_name in this.field_specs) {
+            this.loadField(field_name, this.field_specs[field_name]);
+        }
         
         // set up editor UI, with correct form action for mode.
         
@@ -166,6 +171,41 @@ $.extend(Editor.prototype, {
             self.dfd = {resolve: resolve, reject: reject};
             self.show(position);
         });
+    },
+    
+    // this wrapper for addField just lets us more quickly specify 
+    // some fields, using some likely defaults.
+    loadField: function (field_name, field_spec) {
+      switch (typeof field_spec) {
+        case "string": // create a text input field, with a default value.
+          break;
+
+        case "boolean": // create a checkbox input field, with a default value.
+          this.addField({
+            type: 'checkbox',
+            id: 'annotator-field-' + field_name,
+            label: field_name.humanize() + '?',
+            load: function (field, annotation) {
+              // Check what state of input should be.
+              debugger;
+              if (field_spec) {
+                $(field).find('input').attr('checked', 'checked');
+              } else {
+                $(field).find('input').removeAttr('checked');
+              }
+            },
+            submit: function (field, annotation) {
+              var checked = $(field).find('input').is(':checked');
+              annotation[field_name] = checked;
+            }
+          });
+          break;
+
+        case "object": // create a custom field via fn normally used by the annotator.
+          this.addField(field_spec);
+          break;
+        
+      }
     },
 
     // Public: Submits the editor and saves any changes made to the annotation.
