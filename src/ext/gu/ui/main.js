@@ -115,38 +115,33 @@ var UI = exports.ui = function (options) {
               })
               .on("save-new-annotation", function (evt) {
                 delete evt.annotation["_local"];
-                store.create(evt.annotation).then(api.sendStoreMessage);
+                store.create(evt.annotation).then(function () {
+                  api.sendStoreMessage();
+                  var e = $.Event("annotation-created", { ann: evt.annotation });
+                  document_element.trigger(e);
+                });
               })
               .on("update-annotation", function (evt) {
                 delete evt.annotation["_local"];
-                store.update(evt.annotation).then(api.sendStoreMessage);
+                store.update(evt.annotation).then(function () {
+                  api.sendStoreMessage();
+                  var e = $.Event("annotation-updated", { ann: evt.annotation });
+                  document_element.trigger(e);
+                });
               })
               .on("delete-annotation", function (evt) {
                 delete evt.annotation["_local"];
                 store.delete(evt.annotation).then(function (msg_obj, state, xhr) {
-                  // api.sendStoreMessage(msg_obj, state, xhr, evt.annotation);
+                  var e = $.Event("annotation-deleted", { ann: evt.annotation });
+                  document_element.trigger(e);
                 });
               });
         },
         
-        sendStoreMessage: function (options, state, xhr, ann) {
+        sendStoreMessage: function (options) {
           if (options && options.hasOwnProperty("message")) {
             alert(options.message);
-          }
-          if (state === "success") {
-            switch (xhr._action) {
-              case "destroy":
-                var e = $.Event("annotation-deleted", { ann: ann });
-                document_element.trigger(e);
-                break;
-
-              case "create":
-                var e = $.Event("annotation-created", { ann: ann });
-                document_element.trigger(e);
-                break;
-            }
-          }
-          console.log(arguments);
+          };
         },
     
         // create the basic structure of an annotation from the ranges of the selected text.

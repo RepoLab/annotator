@@ -149,8 +149,10 @@ $.extend(Editor.prototype, {
     load: function (annotation, position, mode) {
         this.annotation = annotation;
         
+        var field;
         for (var field_name in this.field_specs) {
-            this.loadField(field_name, this.field_specs[field_name]);
+            field = this.addFieldFromOptions(field_name, this.field_specs[field_name]);
+            field.load(field, annotation, position); // position?
         }
         
         // set up editor UI, with correct form action for mode.
@@ -175,23 +177,22 @@ $.extend(Editor.prototype, {
     
     // this wrapper for addField just lets us more quickly specify 
     // some fields, using some likely defaults.
-    loadField: function (field_name, field_spec) {
+    addFieldFromOptions: function (field_name, field_spec) {
       switch (typeof field_spec) {
         case "string": // create a text input field, with a default value.
           break;
 
         case "boolean": // create a checkbox input field, with a default value.
-          this.addField({
+          return this.addField({
             type: 'checkbox',
             id: 'annotator-field-' + field_name,
             label: field_name.humanize() + '?',
-            load: function (field, annotation) {
+            load: function (field, annotation, position) {
               // Check what state of input should be.
-              debugger;
               if (field_spec) {
-                $(field).find('input').attr('checked', 'checked');
+                $(field.element).find('input').attr('checked', 'checked');
               } else {
-                $(field).find('input').removeAttr('checked');
+                $(field.element).find('input').removeAttr('checked');
               }
             },
             submit: function (field, annotation) {
@@ -202,7 +203,7 @@ $.extend(Editor.prototype, {
           break;
 
         case "object": // create a custom field via fn normally used by the annotator.
-          this.addField(field_spec);
+          return this.addField(field_spec);
           break;
         
       }
@@ -347,7 +348,7 @@ $.extend(Editor.prototype, {
         this.editor_element.find('ul:first').append(element);
         this.fields.push(field);
 
-        return field.element;
+        return field;
     },
 
     // Event callback: called when a user clicks the editor form (by pressing
