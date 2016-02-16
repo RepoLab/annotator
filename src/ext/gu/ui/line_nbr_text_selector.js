@@ -9,7 +9,12 @@ function LineNbrTextSelector(options) {
   var document_element = options.document_element;
   var linenbr_selector = options.line_nbr_selector || LineNbrTextSelector.defaults.linenbr_selector;
   var click_range = options.click_range || LineNbrTextSelector.defaults.click_range;
+  var mod_key = options.mod_key || false;
+  
   $(linenbr_selector).click(function selectNumberedLine (evt) {
+    // if we've set a mod_key, require that be down.
+    if (!(mod_key && evt[mod_key])) { return; }
+    
     // if click is over the line nbr, select the whole line.
     var click_x = evt.offsetX;
     var click_y = evt.offsetY;
