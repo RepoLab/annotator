@@ -5,13 +5,6 @@ var $ = require('jquery');
 
 var inflector = require('../inflector/lib/inflector');
 
-// var TextSelector = require('./text_selector').TextSelector; // use default whenever possible.
-// var LineNbrTextSelector = require('./line_nbr_text_selector').LineNbrTextSelector; // ours. for poetry line nbrs -- select line.
-// var Editor = require('./editor').Editor; // need radically different UI.
-// var Highlighter = require('./highlighter').Highlighter; // need our own, to better handle temp highlights when editor comes up.
-// var Viewer = require('./viewer').Viewer; // need radically different UI.
-// var BlocksManager = require('./blocks_manager').BlocksManager; // our own markers, not in default UI.
-
 require('./text_selector')
 require('./line_nbr_text_selector')
 require('./editor')
@@ -50,46 +43,61 @@ var UI_DEFAULTS = {
 var UI = exports.ui = function (options) {
     options = options || {};
     var document_element = options.document_element = (options.document_element || UI_DEFAULTS.document_element);
-    
-    // create modules as specified.
-    var option_keys = Object.keys(options);
-    var ith_key,
-        module_name,
-        module_fn,
-        module_options;
-    var shared_options = {};
         
-    // trap all the options we will pass to module specs.
-    for (var i=0; i < option_keys.length; i++) {
-      ith_key = option_keys[i];
-      if (ith_key.indexOf("/") == -1) {
-        shared_options[ith_key] = options[ith_key];
-        delete options[ith_key];
-      }
-    }
-    
-    // the remaining options are module specs.
-    for (var i=0; i < option_keys.length; i++) {
-      ith_key = option_keys[i];
-
-      try {
-        if (ith_key.indexOf("/") > -1) {
-          module_name = ith_key.split("/").pop();
-          module_fn = require(ith_key)[module_name.camelize()];
-          module_options = options[ith_key];
-          if (module_options === true) { module_options = {}; }
-          UI[module_name] = new (module_fn)($.extend(module_options, shared_options));
-        }
-      } catch (e) {
-        console.log("Could not create module " + module_name + ".", e);
-      }
-    }
-    
     // initialize components. have them each render any DOM elements they need.
     // a function w this name gets called by the app, with the app object passed in.
     var api = {
         start: function (app) {
             var store = app.registry.getUtility('storage');
+            
+            // create modules as specified.
+            var option_keys = Object.keys(options);
+            var ith_key,
+                module,
+                module_name,
+                module_class,
+                module_options;
+            
+            // allow sub-modules access to the app.
+            var shared_options = { app: app };
+            
+            // trap all the options we will pass to module specs.
+            for (var i=0; i < option_keys.length; i++) {
+              ith_key = option_keys[i];
+              if (ith_key.indexOf("/") == -1) {
+                shared_options[ith_key] = options[ith_key];
+                delete options[ith_key];
+              }
+            }
+    
+            // the remaining options are module specs.
+            for (var i=0; i < option_keys.length; i++) {
+              ith_key = option_keys[i];
+
+              if (ith_key.indexOf("/") > -1) {
+                module_name = ith_key.split("/").pop();
+                module_options = options[ith_key];
+                if (module_options === true) { module_options = {}; }
+                module_options = $.extend(module_options, shared_options);
+                try {
+                    module = require([ith_key]);
+                    module_class = module[module_name.camelize()];
+                } catch (e) {
+                  try {
+                    module_class = window[module_name.camelize()];
+                  } catch (ee) {
+                    console.log("Could not create module " + module_name + ".", ee);
+                    break;
+                  }
+                } finally {
+                  module = UI[module_name] = new (module_class)(module_options);
+                  // instantiate the module, if nec.
+                  if (module["start"] && typeof module.start === "function") {
+                    module.start(app);
+                  }
+                }
+              }
+            }
             
             // listen for text selection events (initiated by user or by program) to start an annotation.
             // I know it looks dumb to declare a broadcaster and then its listener in the same scope,
@@ -145,11 +153,11 @@ var UI = exports.ui = function (options) {
         },
     
         // create the basic structure of an annotation from the ranges of the selected text.
-        makeAnnotation: function (evt) {
+        makeAnnotation: function (evt_or_spec) {
           try {
-            var ranges = evt.ranges;
+            var ranges = evt_or_spec.ranges;
           } catch (e) {
-            console.log(e, evt)
+            console.log(e, evt_or_spec)
             ranges = []
           }
           

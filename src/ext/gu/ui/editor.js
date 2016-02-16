@@ -136,6 +136,10 @@ $.extend(Editor.prototype, {
     close: function () {
       this.editor_element.hide();
       this.document_element.trigger($.Event("editor-closed"));
+      // nuke custom fields. who knows if we'll want them the next time we load the editor?
+      $(this.fields).each(function () {
+        this.element.remove();
+      })
     },
 
     // Public: Load an annotation into the editor and display it.
@@ -189,10 +193,20 @@ $.extend(Editor.prototype, {
             label: field_name.humanize() + '?',
             load: function (field, annotation, position) {
               // Check what state of input should be.
-              if (field_spec) {
-                $(field.element).find('input').attr('checked', 'checked');
+              // Take if from annotation, if annotation has one.
+              // otherwise, use default.
+              if (annotation.hasOwnProperty(field_name)) {
+                if (annotation[field_name]) {
+                  $(field.element).find('input').attr('checked', 'checked');
+                } else {
+                  $(field.element).find('input').removeAttr('checked');
+                }
               } else {
-                $(field.element).find('input').removeAttr('checked');
+                if (field_spec) {
+                  $(field.element).find('input').attr('checked', 'checked');
+                } else {
+                  $(field.element).find('input').removeAttr('checked');
+                }
               }
             },
             submit: function (field, annotation) {

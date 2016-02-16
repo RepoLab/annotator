@@ -55,62 +55,48 @@ Viewer.DEFAULTS = {
 
 $.extend(Viewer.prototype, {
   
-  loadAnnotations: function (annotation_records, append) {
-    // if the list is empty, return.
-    if (!annotation_records || !annotation_records.length) return;
-    
-    append = append || false;
-    
+  start: function (app) {
+    // keep track of auth code, for when we render annotations.
+    this.ident = app.registry.getUtility('identityPolicy');
+    this.authz = app.registry.getUtility('authorizationPolicy');
+  },
+  
+  loadAnnotations: function (annotations, append) {
     // by default, reset the list.
     if (!append) { this.annotations_list.html(""); }
-
-    // get the location from the start element value of the first range of an annotation from the list.
-    var position;
+    
+    var viewer = this;
+    $(annotations).each(function () {
+      viewer.annotations_list.append(viewer.renderAnnotation(this));
+    })
+    
+    // try to locate the viewer, using any offset info passed in.
+    // we locate the viewer based on the offset to the start of the selected text.
     try {
-      var xpath_of_start = annotation_records[0].fields.ranges[0].fields.start;
+      var start_range = annotations[0].ranges[0];
+      var xpath_of_start = start_range.start;
       var first_element = this.document_element.find(xpathToSelector(xpath_of_start));
-      position = this.viewer_element.parent().offset();
-      position.top = first_element.offset().top;
+      var viewer_offset = this.viewer_element.parent().offset();
+      
+      // we can specify a mandatory left value (or a function which defines one).
+      if (typeof this.offset.left !== "undefined"){
+        if (typeof this.offset.left === "function") {
+          viewer_offset.left = this.offset.left();
+        } else {
+          viewer_offset.left = this.offset.left;
+        }
+      }
+      viewer_offset.top = first_element.offset().top;
       
     } catch (e) {
       console.log(e);
+      
+    } finally {
+      viewer_offset = viewer_offset || { top: 0, left: 0 }; // default, to fail somewhat gracefully.
     }
     
-    if (!position) {
-      position = { top: 0, left: 0 }; // default, to fail somewhat gracefully.
-    }
-    
-    // make sure text nodes are not still broken up from prior highlights.
-    this.html_document_element.normalize();
-    
-    var annotation, annotation_id;
-    for (var i=0; i<annotation_records.length; i++) {
-      annotation = annotation_records[i].fields || {};
-      // create HTML Ranges from Django's model serialization.
-      var ranges = [];
-      var range_specs = [];
-      var range_spec, range, anchor_node, focus_node;
-      for (var j=0; j<annotation.ranges.length; j++) {
-        try {
-          range_spec = annotation.ranges[j].fields;
-          range_specs.push(range_spec);
-          range = document.createRange();
-          anchor_node = this.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
-          focus_node = this.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
-          range.setStart(anchor_node, parseInt(range_spec.start_offset));
-          range.setEnd(focus_node, parseInt(range_spec.end_offset));
-          ranges.push(range);
-        } catch (e) {
-          console.warn("Could not set annotation range.", e);
-        }
-      }
-      annotation.ranges = ranges;
-      annotation.range_specs = range_specs;
-      annotation.id = annotation_records[i].pk;
-      this.annotations_list.append(this.renderAnnotation(annotation));
-    }
-    
-    this.show(position);
+    this.show(viewer_offset);
+    return viewer_offset;
   },
   
   show: function (position) {
@@ -132,22 +118,34 @@ $.extend(Viewer.prototype, {
   renderAnnotation: function (annotation) {
     var annotation_element = $(this.annotation_template);
     annotation_element.append("<div class='note'>" + (annotation.text || "") + "</div>");
+    var viewer = this;
     
     // put controls in here, where we have easy access to the annotation associated with this HTML stuff.
-    var viewer = this;
-    annotation_element.find("a.edit_btn").click(function () {
-      var viewer_position = viewer.viewer_element.offset();
-      viewer_position.top = viewer_position.top + viewer.offset.top;
-      var e = $.Event("edit-annotation", { annotation: annotation, position: viewer_position });
-      viewer.close();
-      viewer.document_element.trigger(e);
-    });
-    annotation_element.find("a.delete_btn").click(function () {
-      if (window.confirm("Are you sure you want to delete this annotation?")) {
-        var e = $.Event("delete-annotation", { annotation: annotation });
+    var edit_btn = annotation_element.find("a.edit_btn");
+    if (this.authz.permits("edit", annotation, this.ident.who())) {
+      edit_btn.click(function () {
+        var viewer_position = viewer.viewer_element.offset();
+        viewer_position.top = viewer_position.top + viewer.offset.top;
+        var e = $.Event("edit-annotation", { annotation: annotation, position: viewer_position });
+        viewer.close();
         viewer.document_element.trigger(e);
-      }
-    });
+      });
+    } else {
+      edit_btn.hide(); // disable?
+    }
+    
+    var delete_btn = annotation_element.find("a.delete_btn")
+    if (this.authz.permits("delete", annotation, this.ident.who())) {
+      delete_btn.click(function () {
+        if (window.confirm("Are you sure you want to delete this annotation?")) {
+          var e = $.Event("delete-annotation", { annotation: annotation });
+          viewer.document_element.trigger(e);
+        }
+      });
+    } else {
+      delete_btn.hide(); // disable?
+    }
+      
     // clicks on the note itself should bring up the note's highlight. (later we'll make this a user-defined option).
     annotation_element.find("div.note").click(function () {
       viewer.selectAnnotationItem(annotation);

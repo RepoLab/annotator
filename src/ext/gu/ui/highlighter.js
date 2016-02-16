@@ -227,8 +227,6 @@ $.extend(Highlighter.prototype, {
               h.normalize();
           }
       }
-
-      this.html_document_element.normalize();
   },
 
   // Public: Redraw the highlights for the given annotation.

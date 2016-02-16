@@ -31,6 +31,10 @@ BlocksManager.DEFAULTS = {
 }
 
 $.extend(BlocksManager.prototype, {
+  
+  start: function (app) {
+    this.app = app;
+  },
 
   getCounts: function () {
     // clear the counts div.
@@ -65,6 +69,11 @@ $.extend(BlocksManager.prototype, {
     var block_mgr = this;
     $.ajax(this.annotations_url + "/" + block_url_param)
       .done(function (block_annotations) {
+        // if the app has a function to translate annotations as serialized into
+        // annotations as Annotator needs them to be, apply that to the annotations.
+        if (typeof block_mgr.app.translate === "function") {
+          block_annotations = block_mgr.app.translate(block_annotations);
+        }
         var e = $.Event("annotations-retrieved", { annotations: block_annotations });
         block_mgr.document_element.trigger(e);
       });
