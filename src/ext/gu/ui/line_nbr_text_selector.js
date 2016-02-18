@@ -38,7 +38,8 @@ function LineNbrTextSelector(options) {
       }
       
       // create a mouse click at the li element, and tell the app to init an annotation there.
-      var aEvt = $.Event("text-selected", { ranges: [range], pageX: evt.pageX, pageY: evt.pageY });
+      var ann = { ranges: [range] };
+      var aEvt = $.Event("text-selected", { ann: ann, pageX: evt.pageX, pageY: evt.pageY });
       document_element.trigger(aEvt);
     
       evt.stopPropagation();

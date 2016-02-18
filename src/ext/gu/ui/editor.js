@@ -45,6 +45,9 @@ var Editor = exports.Editor = function (options) {
     this.field_specs = $.extend({}, (this.options.fields || {}));
     this.fields = [];
     
+    // any operations we want to perform on the ui.
+    this.custom_ui = $.extend((options.custom_ui || {}), Editor.DEFAULTS.custom_ui);
+    
     // any controls passed in will override the defaults, 
     // so add and edit will have to be specified,
     // if they are still desired.
@@ -102,6 +105,8 @@ Editor.DEFAULTS = {
   defaultFields: true,
   annotator_add_selector: ".annotator-controls .annotator-add",
   annotator_edit_selector: ".annotator-controls .annotator-edit",
+  // this should be jQuery selectors and functions to apply to them upon loading.
+  custom_ui: {}
 };
 
 // Classes to toggle state.
@@ -152,15 +157,28 @@ $.extend(Editor.prototype, {
     // rejected if editing is cancelled.
     load: function (annotation, position, mode) {
         this.annotation = annotation;
+        this.mode = mode;
         
+        // add any fields req'd.
         var field;
         for (var field_name in this.field_specs) {
             field = this.addFieldFromOptions(field_name, this.field_specs[field_name]);
             field.load(field, annotation, position); // position?
         }
         
-        // set up editor UI, with correct form action for mode.
+        // add/change any ui elements via options.
+        var editor = this;
+        for (var ui_selector in this.custom_ui) {
+          try {
+            $(ui_selector).each(function () {
+              editor.custom_ui[ui_selector].call(this, annotation);
+            });
+          } catch (e) {
+            console.warn("Could not modify editor UI.", e);
+          }
+        }
         
+        // set up std editor UI, with correct form action for mode.
         if (mode === "edit") {
           this.controls.add.hide();
           this.controls.edit.show();
@@ -170,7 +188,6 @@ $.extend(Editor.prototype, {
           this.controls.edit.hide();
           this.controls.add.show();
         }
-        this.mode = mode;
 
         var self = this;
         return new Promise(function (resolve, reject) {

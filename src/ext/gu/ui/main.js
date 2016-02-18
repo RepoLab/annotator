@@ -104,7 +104,7 @@ var UI = exports.ui = function (options) {
             // but I'm not the only listener, and this guarantees the right sequence of events.
             document_element
               .on("text-selected", function (evt) {
-                var ann = api.makeAnnotation(evt);
+                var ann = api.makeAnnotation(evt.ann);
 
                 // safeguard against annotations that are not associated with text selections.
                 if (!ann || !ann.ranges || !ann.ranges.length) { return; }
@@ -153,11 +153,11 @@ var UI = exports.ui = function (options) {
         },
     
         // create the basic structure of an annotation from the ranges of the selected text.
-        makeAnnotation: function (evt_or_spec) {
+        makeAnnotation: function (ann) {
           try {
-            var ranges = evt_or_spec.ranges;
+            var ranges = ann.ranges;
           } catch (e) {
-            console.log(e, evt_or_spec)
+            console.log(e, ann)
             ranges = []
           }
           
@@ -177,11 +177,11 @@ var UI = exports.ui = function (options) {
                 serialized_range = r.serialize(html_document_element, highlight_class);
                 serializedRanges.push(serialized_range);
             }
-
-            var ann = {
+            
+            ann = $.extend(ann, {
                 quote: text.join(' / '),
                 ranges: serializedRanges
-            };
+            });
             
             return ann;
         }

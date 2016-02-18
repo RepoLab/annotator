@@ -54,7 +54,8 @@ TextSelector.options = {
     // Callback, called when the user makes a selection.
     // Receives the list of selected ranges (may be empty) and  the DOM Event
     // that was detected as a selection.
-    onSelection: null
+    onSelection: null,
+    addl_fields: {}
 };
 
 
@@ -65,7 +66,12 @@ $.extend(TextSelector.prototype, {
   onSelection: function (selectedRanges, event) {
     var e;
     if (selectedRanges.length) {
-      e = $.Event("text-selected", { ranges: selectedRanges });
+      var ann_fields = { ranges: selectedRanges };
+      // add any annotation fields specified in options.
+      for (var addl_field in this.options.addl_fields) {
+        ann_fields[addl_field] = this.options.addl_fields[addl_field];
+      }
+      e = $.Event("text-selected", { ann: ann_fields });
     } else {
       e = $.Event("text-deselected");
     }
