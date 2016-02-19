@@ -104,7 +104,7 @@ var UI = exports.ui = function (options) {
             // but I'm not the only listener, and this guarantees the right sequence of events.
             document_element
               .on("text-selected", function (evt) {
-                var ann = api.makeAnnotation(evt.ann);
+                var ann = api.makeAnnotation(evt.annotation);
 
                 // safeguard against annotations that are not associated with text selections.
                 if (!ann || !ann.ranges || !ann.ranges.length) { return; }
@@ -122,25 +122,37 @@ var UI = exports.ui = function (options) {
                 document_element.trigger(e);
               })
               .on("save-new-annotation", function (evt) {
-                delete evt.annotation["_local"];
-                store.create(evt.annotation).then(function () {
+                // remove _local from annotation_to_save, 
+                // but keep that as part of the annotation passed into events.
+                var annotation_to_save = {};
+                $.extend(annotation_to_save, evt.annotation);
+                delete annotation_to_save["_local"];
+                store.create(annotation_to_save).then(function () {
                   api.sendStoreMessage();
-                  var e = $.Event("annotation-created", { ann: evt.annotation });
+                  var e = $.Event("annotation-created", { annotation: evt.annotation });
                   document_element.trigger(e);
                 });
               })
               .on("update-annotation", function (evt) {
-                delete evt.annotation["_local"];
-                store.update(evt.annotation).then(function () {
+                // remove _local from annotation_to_update, 
+                // but keep that as part of the annotation passed into events.
+                var annotation_to_update = {};
+                $.extend(annotation_to_update, evt.annotation);
+                delete annotation_to_update["_local"];
+                store.update(annotation_to_update).then(function () {
                   api.sendStoreMessage();
-                  var e = $.Event("annotation-updated", { ann: evt.annotation });
+                  var e = $.Event("annotation-updated", { annotation: evt.annotation });
                   document_element.trigger(e);
                 });
               })
               .on("delete-annotation", function (evt) {
-                delete evt.annotation["_local"];
+                // remove _local from annotation_to_delete, 
+                // but keep that as part of the annotation passed into events.
+                var annotation_to_delete = {};
+                $.extend(annotation_to_delete, evt.annotation);
+                delete annotation_to_delete["_local"];
                 store.delete(evt.annotation).then(function (msg_obj, state, xhr) {
-                  var e = $.Event("annotation-deleted", { ann: evt.annotation });
+                  var e = $.Event("annotation-deleted", { annotation: evt.annotation });
                   document_element.trigger(e);
                 });
               });

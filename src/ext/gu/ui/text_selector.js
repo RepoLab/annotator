@@ -71,7 +71,7 @@ $.extend(TextSelector.prototype, {
       for (var addl_field in this.options.addl_fields) {
         ann_fields[addl_field] = this.options.addl_fields[addl_field];
       }
-      e = $.Event("text-selected", { ann: ann_fields });
+      e = $.Event("text-selected", { annotation: ann_fields });
     } else {
       e = $.Event("text-deselected");
     }
