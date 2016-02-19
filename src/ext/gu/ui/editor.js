@@ -94,7 +94,7 @@ var Editor = exports.Editor = function (options) {
           self.close();
         })
         .on("viewer-opened", function (evt) {
-          self.close();
+          self.close(evt, true);
         })
         ;
 }
@@ -138,13 +138,17 @@ $.extend(Editor.prototype, {
       );
     },
     
-    close: function () {
+    close: function (evt, silent) {
       this.editor_element.hide();
-      this.document_element.trigger($.Event("editor-closed"));
+      
       // nuke custom fields. who knows if we'll want them the next time we load the editor?
       $(this.fields).each(function () {
         this.element.remove();
-      })
+      });
+      
+      if (!silent){
+        this.document_element.trigger($.Event("editor-closed"));
+      }
     },
 
     // Public: Load an annotation into the editor and display it.

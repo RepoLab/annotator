@@ -39,7 +39,7 @@ var Viewer = exports.Viewer = function (options) {
       viewer.dehighlightAll();
     })
     .on("editor-opened", function (evt) {
-      viewer.close();
+      viewer.close(evt, true);
     })
     .on("annotation-deleted", function (evt) {
       viewer.close();
@@ -105,10 +105,12 @@ $.extend(Viewer.prototype, {
     this.document_element.trigger(e);
   },
   
-  close: function () {
+  close: function (evt, silent) {
     this.viewer_element.hide();
-    var e = $.Event("viewer-closed");
-    this.document_element.trigger(e);
+    if (!silent) {
+      var e = $.Event("viewer-closed");
+      this.document_element.trigger(e);
+    }
   },
   
   dehighlightAll: function () {
