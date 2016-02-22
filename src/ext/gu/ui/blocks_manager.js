@@ -14,10 +14,11 @@ function BlocksManager(options) {
   this.annotations_url = options.annotations_url || BlocksManager.DEFAULTS.annotations_url;
   this.counter_template = options.counter_template || BlocksManager.DEFAULTS.counter_template;
   this.xpathToSelector = require('./util').xpathToSelector;
+  this.counts_array = [];
   this.getCounts();
   
   // refresh placement of counters when browser window gets resized.
-  $(window).on('resize', this.getCounts.bind(this));
+  $(window).on('resize', this.refreshCounters.bind(this));
   
   // when an annotation is deleted, just refresh all of the block markers on the page.
   this.document_element.on("annotation-deleted annotation-created", this.getCounts.bind(this))
@@ -37,25 +38,32 @@ $.extend(BlocksManager.prototype, {
   },
 
   getCounts: function () {
+    var counts_mgr = this;
+    return $.ajax(this.counts_url, { dataType: 'json' })
+    .done(function (counts_array) {
+      counts_mgr.counts_array = counts_array;
+      counts_mgr.refreshCounters();
+    })
+  },
+  
+  refreshCounters: function () {
     // clear the counts div.
     var counts_div = $("#counts");
     counts_div.find(".counter").remove();
+    
     var counts_mgr = this;
-    return $.ajax(this.counts_url, { dataType: 'json' })
-      .done(function (counts_array) {
-        $(counts_array).each(function () {
-          var count_obj = this;
-          var block_element = counts_mgr.document_element.find(counts_mgr.xpathToSelector(count_obj.block_id));
-          // create a counter and place it into the counts div.
-          var counter = $(counts_mgr.counter_template);
-          counts_div.append(counter);
-          counter.offset({ top: block_element.offset().top }).html(this.num_annotations_in_block);
-          counter.click(function (evt) {
-            // request the annotations for this block.
-            counts_mgr.getAnnotationsForBlock(count_obj);
-          });
-        })
-      })
+    $(this.counts_array).each(function () {
+      var count_obj = this;
+      var block_element = counts_mgr.document_element.find(counts_mgr.xpathToSelector(count_obj.block_id));
+      // create a counter and place it into the counts div.
+      var counter = $(counts_mgr.counter_template);
+      counts_div.append(counter);
+      counter.offset({ top: block_element.offset().top }).html(this.num_annotations_in_block);
+      counter.click(function (evt) {
+        // request the annotations for this block.
+        counts_mgr.getAnnotationsForBlock(count_obj);
+      });
+    });
   },
 
   getAnnotationsForBlock: function (count_obj) {

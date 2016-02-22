@@ -61,13 +61,13 @@ $.extend(Viewer.prototype, {
     this.authz = app.registry.getUtility('authorizationPolicy');
   },
   
-  loadAnnotations: function (annotations, append) {
+  loadAnnotations: function (annotations, append, addl_classes) {
     // by default, reset the list.
     if (!append) { this.annotations_list.html(""); }
     
     var viewer = this;
     $(annotations).each(function () {
-      viewer.annotations_list.append(viewer.renderAnnotation(this));
+      viewer.annotations_list.append(viewer.renderAnnotation(this, addl_classes));
     })
     
     // try to locate the viewer, using any offset info passed in.
@@ -117,9 +117,13 @@ $.extend(Viewer.prototype, {
     this.viewer_element.find("div.note").removeClass("highlighted");
   },
   
-  renderAnnotation: function (annotation) {
+  renderAnnotation: function (annotation, addl_classes) {
     var annotation_element = $(this.annotation_template);
     annotation_element.append("<div class='note'>" + (annotation.text || "") + "</div>");
+    
+    if (addl_classes) {
+      annotation_element.addClass(addl_classes);
+    }
     var viewer = this;
     
     // put controls in here, where we have easy access to the annotation associated with this HTML stuff.
