@@ -1,6 +1,6 @@
 "use strict";
 
-var $ = require('jquery');
+var $ = window.$ || require('jquery');
 
 
 /*
@@ -38,11 +38,11 @@ $.extend(BlocksManager.prototype, {
   },
 
   getCounts: function () {
-    var counts_mgr = this;
+    var blocks_mgr = this;
     return $.ajax(this.counts_url, { dataType: 'json' })
     .done(function (counts_array) {
-      counts_mgr.counts_array = counts_array;
-      counts_mgr.refreshCounters();
+      blocks_mgr.counts_array = counts_array;
+      blocks_mgr.refreshCounters();
     })
   },
   
@@ -51,19 +51,24 @@ $.extend(BlocksManager.prototype, {
     var counts_div = $("#counts");
     counts_div.find(".counter").remove();
     
-    var counts_mgr = this;
+    var blocks_mgr = this;
     $(this.counts_array).each(function () {
       var count_obj = this;
-      var block_element = counts_mgr.document_element.find(counts_mgr.xpathToSelector(count_obj.block_id));
+      var block_element = blocks_mgr.document_element.find(blocks_mgr.xpathToSelector(count_obj.block_id));
       // create a counter and place it into the counts div.
-      var counter = $(counts_mgr.counter_template);
+      var counter = $(blocks_mgr.counter_template);
       counts_div.append(counter);
       counter.offset({ top: block_element.offset().top }).html(this.num_annotations_in_block);
       counter.click(function (evt) {
         // request the annotations for this block.
-        counts_mgr.getAnnotationsForBlock(count_obj);
+        blocks_mgr.getAnnotationsForBlock(count_obj);
       });
     });
+  },
+  
+  removeCounters: function () {
+    var counts_div = $("#counts");
+    counts_div.find(".counter").remove();
   },
 
   getAnnotationsForBlock: function (count_obj) {

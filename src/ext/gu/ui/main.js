@@ -1,7 +1,7 @@
 /*package annotator.ext.gu.ui */
 "use strict";
 
-var $ = require('jquery');
+var $ = window.$ || require('jquery');
 
 var inflector = require('../inflector/lib/inflector');
 

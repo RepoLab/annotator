@@ -1,6 +1,6 @@
 "use strict";
 
-var $ = require('jquery');
+var $ = window.$ || require('jquery');
 
 var util = require('../../../util');
 

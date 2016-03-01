@@ -1,6 +1,6 @@
 "use strict";
 
-var $ = require('jquery');
+var $ = window.$ || require('jquery');
 
 var xpathToSelector = require('./util').xpathToSelector;
 
@@ -29,6 +29,9 @@ var Viewer = exports.Viewer = function (options) {
     // TODO: make this mode-dependent, when we pass in mode.
     this.annotation_template = this.options.annotation_template || Viewer.DEFAULTS.annotation_template;
     
+    this.fancybox_options = {};
+    $.merge(this.fancybox_options, Viewer.DEFAULTS.fancybox_options || {});
+    
     // load annotations when the event arises.
     var viewer = this;
     this.document_element
@@ -50,7 +53,14 @@ Viewer.DEFAULTS = {
   offset: { top: 0, left: 4 },
   viewer_selector: "#annotator-viewer",
   list_selector: "ul.annotations-listing",
-  annotation_template: "<li class='annotation'><a class='edit_btn' href='#'></a><a class='delete_btn' href='#'></a></li>"
+  annotation_template: "<li class='annotation'><a class='edit_btn' href='#'></a><a class='delete_btn' href='#'></a></li>",
+  fancybox_options: {
+    helpers : {
+                title : {
+                    type : 'inside'
+                  }
+                }
+  }
 }
 
 $.extend(Viewer.prototype, {
@@ -159,6 +169,13 @@ $.extend(Viewer.prototype, {
       viewer.dehighlightAll();
       $(this).addClass("highlighted");
     });
+    
+    // activate any fancybox items w/in annotation.
+    // perform this check when executing, 
+    // so we don't have to worry about order of initialization.
+    if (typeof $.fn["fancybox"] === "function") {
+      $(annotation_element).find(".fancybox").fancybox(this.fancybox_options);
+    }
     
     // give notice that the annotation has been rendered.
     var e = $.Event("annotation-rendered", { annotation: annotation, element: annotation_element });

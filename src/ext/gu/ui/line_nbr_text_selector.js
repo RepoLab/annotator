@@ -1,6 +1,6 @@
 "use strict";
 
-var $ = require('jquery');
+var $ = window.$ || require('jquery');
 
 /*
  * Trap clicks on line nbrs (in poetry) as clicks on the whole line:
