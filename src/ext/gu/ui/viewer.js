@@ -32,6 +32,9 @@ var Viewer = exports.Viewer = function (options) {
     this.fancybox_options = {};
     $.merge(this.fancybox_options, Viewer.DEFAULTS.fancybox_options || {});
     
+    // permissions
+    this.permissions = this.options.permissions || false;
+    
     // load annotations when the event arises.
     var viewer = this;
     this.document_element
@@ -77,6 +80,9 @@ $.extend(Viewer.prototype, {
     
     var viewer = this;
     $(annotations).each(function () {
+      this._local = this._local || {};
+      this._local.permissions = this._local.permissions || {};
+      $.extend(this._local.permissions, viewer.permissions);
       viewer.annotations_list.append(viewer.renderAnnotation(this, addl_classes));
     })
     
