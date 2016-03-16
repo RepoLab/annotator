@@ -73,12 +73,15 @@ $.extend(BlocksManager.prototype, {
 
   getAnnotationsForBlock: function (count_obj) {
     // turn the block_id into something that's okay for a URL.
-    var re = /(\w+\[\d+\])/g;
+    var re = /(\w+)(?:\[)(\d+)(?:\])/g;
     var block_term_info;
-    var block_url_param = "";
+    var block_terms = []
     while (block_term_info = re.exec(count_obj.block_id)) {
-      block_url_param = block_url_param + block_term_info[0];
+      if (block_term_info.length == 3) {
+        block_terms.push(block_term_info[1] + "-" + block_term_info[2]);
+      }
     }
+    var block_url_param = block_terms.join("_");
     var block_mgr = this;
     var annotations_url = this.annotations_url.replace(/\{doc-id\}/, this.document_id);
     $.ajax(annotations_url + "/" + block_url_param)
