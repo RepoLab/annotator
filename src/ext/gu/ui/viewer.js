@@ -29,27 +29,13 @@ var Viewer = exports.Viewer = function (options) {
     // TODO: make this mode-dependent, when we pass in mode.
     this.annotation_template = this.options.annotation_template || Viewer.DEFAULTS.annotation_template;
     
-    this.fancybox_options = {};
+    this.fancybox_options = options.fancybox_options || {};
     $.merge(this.fancybox_options, Viewer.DEFAULTS.fancybox_options || {});
     
     // permissions
     this.permissions = this.options.permissions || false;
     
-    // load annotations when the event arises.
-    var viewer = this;
-    this.document_element
-    .on("annotations-retrieved", function (evt) {
-      viewer.loadAnnotations(evt.annotations);
-    })
-    .on("text-deselected", function (evt) {
-      viewer.dehighlightAll();
-    })
-    .on("editor-opened", function (evt) {
-      viewer.close(evt, true);
-    })
-    .on("annotation-deleted", function (evt) {
-      viewer.close();
-    });
+    this.setDocumentEvents();
 }
 
 Viewer.DEFAULTS = {
@@ -72,6 +58,28 @@ $.extend(Viewer.prototype, {
     // keep track of auth code, for when we render annotations.
     this.ident = app.registry.getUtility('identityPolicy');
     this.authz = app.registry.getUtility('authorizationPolicy');
+  },
+        
+  setDocumentEvents: function () {
+    // load annotations when the event arises.
+    var self = this;
+    this.document_element
+    .on("annotations-retrieved", function (evt) {
+      self.loadAnnotations(evt.annotations);
+    })
+    .on("text-deselected", function (evt) {
+      self.dehighlightAll();
+    })
+    .on("editor-opened", function (evt) {
+      self.close(evt, true);
+    })
+    .on("annotation-deleted", function (evt) {
+      self.close();
+    })
+    .on("document-element-changed", function (evt) {
+      self.document_element = evt.new_document_element;
+      self.setDocumentEvents();
+    });
   },
   
   loadAnnotations: function (annotations, append, addl_classes) {
