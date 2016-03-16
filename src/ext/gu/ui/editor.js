@@ -57,9 +57,46 @@ var Editor = exports.Editor = function (options) {
     };
     this.mode = "add";
     this.annotation = {};
-    
-    this.setEditorEvents();
-    this.setDocumentEvents();
+
+    var self = this;
+
+    this.editor_element
+        .on("submit." + NS, 'form', function (e) {
+            self._onFormSubmit(e);
+        })
+        .on("click." + NS, '.annotator-add', function (e) {
+            self._onSaveClick(e);
+        })
+        .on("click." + NS, '.annotator-edit', function (e) {
+            self._onSaveClick(e);
+        })
+        .on("click." + NS, '.annotator-cancel', function (e) {
+            self._onCancelClick(e);
+        })
+        .on("mouseover." + NS, '.annotator-cancel', function (e) {
+            self._onCancelMouseover(e);
+        })
+        .on("keydown." + NS, 'textarea', function (e) {
+            self._onTextareaKeydown(e);
+        });
+        
+    this.document_element
+        .on("new-annotation", function (evt) {
+          self.load(evt.annotation, evt.position, "add");
+        })
+        .on("text-deselected", function (evt) {
+          self.cancel();
+        })
+        .on("edit-annotation", function (evt) {
+          self.load(evt.annotation, evt.position, "edit");
+        })
+        .on("annotation-created", function (evt) {
+          self.close();
+        })
+        .on("viewer-opened", function (evt) {
+          self.close(evt, true);
+        })
+        ;
 }
 
 Editor.DEFAULTS = {
@@ -112,55 +149,6 @@ $.extend(Editor.prototype, {
       if (!silent){
         this.document_element.trigger($.Event("editor-closed"));
       }
-    },
-    
-    setEditorEvents: function () {
-      var self = this;
-
-      this.editor_element
-          .on("submit." + NS, 'form', function (e) {
-              self._onFormSubmit(e);
-          })
-          .on("click." + NS, '.annotator-add', function (e) {
-              self._onSaveClick(e);
-          })
-          .on("click." + NS, '.annotator-edit', function (e) {
-              self._onSaveClick(e);
-          })
-          .on("click." + NS, '.annotator-cancel', function (e) {
-              self._onCancelClick(e);
-          })
-          .on("mouseover." + NS, '.annotator-cancel', function (e) {
-              self._onCancelMouseover(e);
-          })
-          .on("keydown." + NS, 'textarea', function (e) {
-              self._onTextareaKeydown(e);
-          });
-    },
-        
-    setDocumentEvents: function () {
-      var self = this;
-        
-      this.document_element
-          .on("new-annotation", function (evt) {
-            self.load(evt.annotation, evt.position, "add");
-          })
-          .on("text-deselected", function (evt) {
-            self.cancel();
-          })
-          .on("edit-annotation", function (evt) {
-            self.load(evt.annotation, evt.position, "edit");
-          })
-          .on("annotation-created", function (evt) {
-            self.close();
-          })
-          .on("viewer-opened", function (evt) {
-            self.close(evt, true);
-          })
-          .on("document-element-changed", function (evt) {
-            self.document_element = evt.new_document_element;
-            self.setDocumentEvents();
-          });
     },
 
     // Public: Load an annotation into the editor and display it.

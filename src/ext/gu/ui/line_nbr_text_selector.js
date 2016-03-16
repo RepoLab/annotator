@@ -6,15 +6,14 @@ var $ = window.$ || require('jquery');
  * Trap clicks on line nbrs (in poetry) as clicks on the whole line:
  */
 function LineNbrTextSelector(options) {
-  this.document_element = options.document_element;
+  var document_element = options.document_element;
   var linenbr_selector = options.line_nbr_selector || LineNbrTextSelector.defaults.linenbr_selector;
   var click_range = options.click_range || LineNbrTextSelector.defaults.click_range;
   var mod_key = options.mod_key || false;
-  var self = this;
   
   $(linenbr_selector).click(function selectNumberedLine (evt) {
     // if we've set a mod_key, require that be down.
-    if (mod_key && !evt[mod_key]) { return; }
+    if (!(mod_key && evt[mod_key])) { return; }
     
     // if click is over the line nbr, select the whole line.
     var click_x = evt.offsetX;
@@ -41,7 +40,7 @@ function LineNbrTextSelector(options) {
       // create a mouse click at the li element, and tell the app to init an annotation there.
       var ann = { ranges: [range] };
       var aEvt = $.Event("text-selected", { annotation: ann, pageX: evt.pageX, pageY: evt.pageY });
-      self.document_element.trigger(aEvt);
+      document_element.trigger(aEvt);
     
       evt.stopPropagation();
       evt.stopImmediatePropagation();
@@ -54,21 +53,5 @@ LineNbrTextSelector.defaults = {
   linenbr_selector: "#content ol li",
   click_range: { left: -2, right: -.05 }
 }
-
-$.extend(LineNbrTextSelector.prototype, {
-  
-  start: function (app) {
-    this.setDocumentEvents();
-  },
-        
-  setDocumentEvents: function () {
-    var self = this;
-    this.document_element
-    .on("document-element-changed", function (evt) {
-      self.document_element = evt.new_document_element;
-      self.setDocumentEvents();
-    });
-  }
-});
 
 exports.LineNbrTextSelector = LineNbrTextSelector;

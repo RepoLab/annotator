@@ -75,23 +75,6 @@ var Highlighter = exports.Highlighter = function Highlighter(options) {
     
     this.temp_highlighted_anns = [];
     
-    this.setDocumentEvents();
-};
-
-Highlighter.defaults = {
-    // The CSS class to apply to drawn highlights
-    highlight_class: 'annotator-hl',
-    // CSS class to apply while annotation is being made
-    temp_highlight_class: "annotator-hl-temporary",
-    // Number of annotations to draw at once
-    chunkSize: 10,
-    // Time (in ms) to pause between drawing chunks of annotations
-    chunkDelay: 10
-};
-
-$.extend(Highlighter.prototype, {
-        
-  setDocumentEvents: function () {
     var self = this;
     
     this.document_element
@@ -116,12 +99,21 @@ $.extend(Highlighter.prototype, {
       })
       .on("viewer-closed editor-closed", function (evt) {
         self.undrawAll();
-      })
-      .on("document-element-changed", function (evt) {
-        self.document_element = evt.new_document_element;
-        self.setDocumentEvents();
       });
-  },
+};
+
+Highlighter.defaults = {
+    // The CSS class to apply to drawn highlights
+    highlight_class: 'annotator-hl',
+    // CSS class to apply while annotation is being made
+    temp_highlight_class: "annotator-hl-temporary",
+    // Number of annotations to draw at once
+    chunkSize: 10,
+    // Time (in ms) to pause between drawing chunks of annotations
+    chunkDelay: 10
+};
+
+$.extend(Highlighter.prototype, {
   
   destroy: function () {
     this.document_element

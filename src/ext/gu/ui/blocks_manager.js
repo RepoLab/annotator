@@ -9,18 +9,19 @@ var $ = window.$ || require('jquery');
  */
 function BlocksManager(options) {
   this.document_element = options.document_element;
-  this.document_id = options.document_id;
   this.counts_url = options.counts_url || BlocksManager.DEFAULTS.counts_url;
   this.counts_selector = options.counts_selector || BlocksManager.DEFAULTS.counts_selector;
   this.annotations_url = options.annotations_url || BlocksManager.DEFAULTS.annotations_url;
   this.counter_template = options.counter_template || BlocksManager.DEFAULTS.counter_template;
   this.xpathToSelector = require('./util').xpathToSelector;
   this.counts_array = [];
+  this.getCounts();
   
   // refresh placement of counters when browser window gets resized.
   $(window).on('resize', this.refreshCounters.bind(this));
   
-  this.setDocumentEvents();
+  // when an annotation is deleted, just refresh all of the block markers on the page.
+  this.document_element.on("annotation-deleted annotation-created", this.getCounts.bind(this))
 }
 
 BlocksManager.DEFAULTS = {
@@ -38,8 +39,7 @@ $.extend(BlocksManager.prototype, {
 
   getCounts: function () {
     var blocks_mgr = this;
-    var counts_url = this.counts_url.replace(/\{doc-id\}/, this.document_id);
-    return $.ajax(counts_url, { dataType: 'json' })
+    return $.ajax(this.counts_url, { dataType: 'json' })
     .done(function (counts_array) {
       blocks_mgr.counts_array = counts_array;
       blocks_mgr.refreshCounters();
@@ -80,8 +80,7 @@ $.extend(BlocksManager.prototype, {
       block_url_param = block_url_param + block_term_info[0];
     }
     var block_mgr = this;
-    var annotations_url = this.annotations_url.replace(/\{doc-id\}/, this.document_id);
-    $.ajax(annotations_url + "/" + block_url_param)
+    $.ajax(this.annotations_url + "/" + block_url_param)
       .done(function (block_annotations) {
         // if the app has a function to translate annotations as serialized into
         // annotations as Annotator needs them to be, apply that to the annotations.
@@ -91,20 +90,6 @@ $.extend(BlocksManager.prototype, {
         var e = $.Event("annotations-retrieved", { annotations: block_annotations });
         block_mgr.document_element.trigger(e);
       });
-  },
-        
-  setDocumentEvents: function () {
-    // when an annotation is deleted, just refresh all of the block markers on the page.
-    var self = this;
-    this.document_element
-    .on("annotation-deleted annotation-created", self.getCounts)
-    .on("document-element-changed", function (evt) {
-      self.setDocumentEvents();
-      self.removeCounters();
-      self.document_element = evt.new_document_element;
-      self.document_id = evt.document_id;
-      self.getCounts();
-    });
   }
 });
 

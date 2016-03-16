@@ -29,9 +29,17 @@ function TextSelector(options) {
 
     if (typeof this.html_document_element.ownerDocument !== 'undefined' &&
         this.html_document_element.ownerDocument !== null) {
+        var self = this;
         this.document = this.html_document_element.ownerDocument;
 
-        this.setDocumentEvents();
+        this.document_element
+          .on("mouseup." + TEXTSELECTOR_NS, function (e) {
+              self._checkForEndSelection(e);
+              self._mouseDownEvent = null;
+          })
+          .on("mousedown." + TEXTSELECTOR_NS, function (e) {
+            self._mouseDownEvent = e;
+          });
     } else {
         console.warn("You created an instance of the TextSelector on an " +
                      "element that doesn't have an ownerDocument. This won't " +
@@ -52,22 +60,6 @@ TextSelector.options = {
 
 
 $.extend(TextSelector.prototype, {
-      
-  setDocumentEvents: function () {
-    var self = this;
-    this.document_element
-      .on("mouseup." + TEXTSELECTOR_NS, function (e) {
-          self._checkForEndSelection(e);
-          self._mouseDownEvent = null;
-      })
-      .on("mousedown." + TEXTSELECTOR_NS, function (e) {
-        self._mouseDownEvent = e;
-      })
-      .on("document-element-changed", function (evt) {
-        self.document_element = evt.new_document_element;
-        self.setDocumentEvents();
-      });
-  },
 
   // employ a broadcast/listener pattern,
   // borrowing their callback.

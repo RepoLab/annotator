@@ -37,14 +37,12 @@ function trim(s) {
  * document.
  */
 var UI_DEFAULTS = {
-  document_element: $("section#content"),
-  document_id: 0
+  document_element: $("section#content")
 }
 
 var UI = exports.ui = function (options) {
     options = options || {};
-    UI.document_element = options.document_element || UI_DEFAULTS.document_element;
-    UI.document_id = options.document_id || UI_DEFAULTS.document_id;
+    var document_element = options.document_element = (options.document_element || UI_DEFAULTS.document_element);
         
     // initialize components. have them each render any DOM elements they need.
     // a function w this name gets called by the app, with the app object passed in.
@@ -101,7 +99,63 @@ var UI = exports.ui = function (options) {
               }
             }
             
-            this.setDocument(UI.document_element, UI.document_id);
+            // listen for text selection events (initiated by user or by program) to start an annotation.
+            // I know it looks dumb to declare a broadcaster and then its listener in the same scope,
+            // but I'm not the only listener, and this guarantees the right sequence of events.
+            document_element
+              .on("text-selected", function (evt) {
+                var ann = api.makeAnnotation(evt.annotation);
+
+                // safeguard against annotations that are not associated with text selections.
+                if (!ann || !ann.ranges || !ann.ranges.length) { return; }
+            
+                // announce that a new annotation is ready to be edited.
+                var pageX, pageY;
+                if (evt.hasOwnProperty("_startOfSelectionEvent") && evt._startOfSelectionEvent.pageY < evt.pageY) {
+                  pageX = evt._startOfSelectionEvent.pageX;
+                  pageY = evt._startOfSelectionEvent.pageY;
+                } else {
+                  pageX = evt.pageX;
+                  pageY = evt.pageY;
+                }
+                var e = $.Event("new-annotation", { annotation: ann, position: { left: pageX, top: pageY } });
+                document_element.trigger(e);
+              })
+              .on("save-new-annotation", function (evt) {
+                // remove _local from annotation_to_save, 
+                // but keep that as part of the annotation passed into events.
+                var annotation_to_save = {};
+                $.extend(annotation_to_save, evt.annotation);
+                delete annotation_to_save["_local"];
+                store.create(annotation_to_save).then(function () {
+                  api.sendStoreMessage();
+                  var e = $.Event("annotation-created", { annotation: evt.annotation });
+                  document_element.trigger(e);
+                });
+              })
+              .on("update-annotation", function (evt) {
+                // remove _local from annotation_to_update, 
+                // but keep that as part of the annotation passed into events.
+                var annotation_to_update = {};
+                $.extend(annotation_to_update, evt.annotation);
+                delete annotation_to_update["_local"];
+                store.update(annotation_to_update).then(function () {
+                  api.sendStoreMessage();
+                  var e = $.Event("annotation-updated", { annotation: evt.annotation });
+                  document_element.trigger(e);
+                });
+              })
+              .on("delete-annotation", function (evt) {
+                // remove _local from annotation_to_delete, 
+                // but keep that as part of the annotation passed into events.
+                var annotation_to_delete = {};
+                $.extend(annotation_to_delete, evt.annotation);
+                delete annotation_to_delete["_local"];
+                store.delete(evt.annotation).then(function (msg_obj, state, xhr) {
+                  var e = $.Event("annotation-deleted", { annotation: evt.annotation });
+                  document_element.trigger(e);
+                });
+              });
         },
         
         sendStoreMessage: function (options) {
@@ -142,83 +196,6 @@ var UI = exports.ui = function (options) {
             });
             
             return ann;
-        },
-        
-        setDocument: function (new_document_element, document_id) {
-          // we have to issue the event before changing the document,
-          // as events are associated with it.
-          var old_document_element = UI.document_element;
-          UI.document_element = new_document_element;
-          UI.document_id = document_id;
-          var e = $.Event("document-element-changed", 
-                                        { 
-                                           new_document_element: new_document_element,
-                                           document_id: document_id
-                                        });
-          old_document_element.trigger(e);
-          
-          this.setDocumentEvents();
-        },
-        
-        setDocumentEvents: function () {
-   
-          // listen for text selection events (initiated by user or by program) to start an annotation.
-          // I know it looks dumb to declare a broadcaster and then its listener in the same scope,
-          // but I'm not the only listener, and this guarantees the right sequence of events.
-          UI.document_element
-            .on("text-selected", function (evt) {
-              var ann = api.makeAnnotation(evt.annotation);
-
-              // safeguard against annotations that are not associated with text selections.
-              if (!ann || !ann.ranges || !ann.ranges.length) { return; }
-        
-              // announce that a new annotation is ready to be edited.
-              var pageX, pageY;
-              if (evt.hasOwnProperty("_startOfSelectionEvent") && evt._startOfSelectionEvent.pageY < evt.pageY) {
-                pageX = evt._startOfSelectionEvent.pageX;
-                pageY = evt._startOfSelectionEvent.pageY;
-              } else {
-                pageX = evt.pageX;
-                pageY = evt.pageY;
-              }
-              var e = $.Event("new-annotation", { annotation: ann, position: { left: pageX, top: pageY } });
-              UI.document_element.trigger(e);
-            })
-            .on("save-new-annotation", function (evt) {
-              // remove _local from annotation_to_save, 
-              // but keep that as part of the annotation passed into events.
-              var annotation_to_save = {};
-              $.extend(annotation_to_save, evt.annotation);
-              delete annotation_to_save["_local"];
-              store.create(annotation_to_save).then(function () {
-                api.sendStoreMessage();
-                var e = $.Event("annotation-created", { annotation: evt.annotation });
-                self.document_element.trigger(e);
-              });
-            })
-            .on("update-annotation", function (evt) {
-              // remove _local from annotation_to_update, 
-              // but keep that as part of the annotation passed into events.
-              var annotation_to_update = {};
-              $.extend(annotation_to_update, evt.annotation);
-              delete annotation_to_update["_local"];
-              store.update(annotation_to_update).then(function () {
-                api.sendStoreMessage();
-                var e = $.Event("annotation-updated", { annotation: evt.annotation });
-                UI.document_element.trigger(e);
-              });
-            })
-            .on("delete-annotation", function (evt) {
-              // remove _local from annotation_to_delete, 
-              // but keep that as part of the annotation passed into events.
-              var annotation_to_delete = {};
-              $.extend(annotation_to_delete, evt.annotation);
-              delete annotation_to_delete["_local"];
-              store.delete(evt.annotation).then(function (msg_obj, state, xhr) {
-                var e = $.Event("annotation-deleted", { annotation: evt.annotation });
-                UI.document_element.trigger(e);
-              });
-            });
         }
     }
     
