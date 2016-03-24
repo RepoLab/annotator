@@ -92,6 +92,9 @@ var Highlighter = exports.Highlighter = function Highlighter(options) {
       .on("annotation-created", function (evt) {
         self.undraw(evt.annotation);
       })
+      .on("annotation-deleted", function (evt) {
+        self.undraw(evt.annotation);
+      })
       .on("annotation-selected", function (evt) {
         self.undrawAll();
         self.temp_highlighted_anns.push(evt.annotation);

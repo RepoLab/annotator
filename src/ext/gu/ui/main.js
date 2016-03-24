@@ -127,8 +127,9 @@ var UI = exports.ui = function (options) {
                 var annotation_to_save = {};
                 $.extend(annotation_to_save, evt.annotation);
                 delete annotation_to_save["_local"];
-                store.create(annotation_to_save).then(function () {
+                store.create(annotation_to_save).then(function (annotation_set, status, xhr) {
                   api.sendStoreMessage();
+                  evt.annotation.id = annotation_set[0].pk;
                   var e = $.Event("annotation-created", { annotation: evt.annotation });
                   document_element.trigger(e);
                 });

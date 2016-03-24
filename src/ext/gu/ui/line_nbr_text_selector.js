@@ -13,7 +13,9 @@ function LineNbrTextSelector(options) {
   
   $(linenbr_selector).click(function selectNumberedLine (evt) {
     // if we've set a mod_key, require that be down.
-    if (!(mod_key && evt[mod_key])) { return; }
+    if (mod_key) {
+      if (!evt[mod_key]) { return; }
+    }
     
     // if click is over the line nbr, select the whole line.
     var click_x = evt.offsetX;

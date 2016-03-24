@@ -141,7 +141,6 @@ $.extend(Viewer.prototype, {
       annotation_element.addClass(addl_classes);
     }
     var viewer = this;
-    
     // put controls in here, where we have easy access to the annotation associated with this HTML stuff.
     var edit_btn = annotation_element.find("a.edit_btn");
     if (this.authz.permits("edit", annotation, this.ident.who())) {
