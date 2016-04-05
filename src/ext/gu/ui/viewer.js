@@ -195,8 +195,8 @@ $.extend(Viewer.prototype, {
     var ranges = [];
     var range_spec, range, anchor_node, focus_node;
     try {
-      for (var j=0; j<annotation.range_specs.length; j++) {
-        range_spec = annotation.range_specs[j];
+      for (var j = 0; j < annotation.ranges.length; j++) {
+        range_spec = annotation.ranges[j];
         range = document.createRange();
         anchor_node = this.document_element.find(xpathToSelector(range_spec.start)).get(0).firstChild;
         focus_node = this.document_element.find(xpathToSelector(range_spec.end)).get(0).firstChild;
