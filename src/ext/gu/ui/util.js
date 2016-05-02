@@ -22,5 +22,17 @@ function xpathToSelector (xpath) {
   return selector;
 }
 
+function xpathToBlockNbr (xpath) {
+  var block_nbr, term_info;
+  var re = /(\/(\w+)\[(\d+)\])/g;
+  while (term_info = re.exec(xpath)) {
+    if ((term_info instanceof Array) && (term_info.length == 4)) {
+      block_nbr = term_info[3];
+      break;
+    }
+  }
+  return block_nbr;
+}
 
 exports.xpathToSelector = xpathToSelector;
+exports.xpathToBlockNbr = xpathToBlockNbr;

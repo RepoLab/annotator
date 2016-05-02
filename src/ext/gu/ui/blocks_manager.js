@@ -14,6 +14,7 @@ function BlocksManager(options) {
   this.annotations_url = options.annotations_url || BlocksManager.DEFAULTS.annotations_url;
   this.counter_template = options.counter_template || BlocksManager.DEFAULTS.counter_template;
   this.xpathToSelector = require('./util').xpathToSelector;
+  this.xpathToBlockNbr = require('./util').xpathToBlockNbr;
   this.counts_array = [];
   this.getCounts();
   
@@ -55,6 +56,8 @@ $.extend(BlocksManager.prototype, {
     $(this.counts_array).each(function () {
       var count_obj = this;
       var block_element = blocks_mgr.document_element.find(blocks_mgr.xpathToSelector(count_obj.block_id));
+      // create a page anchor at this block.
+      block_element.attr("id", "block_" + blocks_mgr.xpathToBlockNbr(count_obj.block_id));
       // create a counter and place it into the counts div.
       var counter = $(blocks_mgr.counter_template);
       counts_div.append(counter);
